@@ -1,0 +1,125 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: notification-hpa
+  namespace: ai
+  labels:
+    app: notification-service
+    environment: production
+  annotations:
+    monitoring: enabled
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: notification-service-deployment
+  minReplicas: 2
+  maxReplicas: 15
+  metrics:
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Object
+      object:
+        metric:
+          name: http_requests_per_second
+        describedObject:
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          name: notification-service
+        target:
+          type: Value
+          value: 50
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 300
+      selectPolicy: Max
+      policies:
+        - type: Pods
+          value: 4
+          periodSeconds: 300
+        - type: Percent
+          value: 50
+          periodSeconds: 300
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      selectPolicy: Min
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 300
+        - type: Percent
+          value: 20
+          periodSeconds: 300
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: notification-service-hpa
+  namespace: ai
+  labels:
+    app: notification-service
+    environment: production
+  annotations:
+    monitoring: enabled
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: notification-service
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: AverageValue
+          averageValue: 512Mi
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 75
+    - type: Object
+      object:
+        metric:
+          name: http_requests_per_second
+        describedObject:
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          name: notification-service
+        target:
+          type: Value
+          value: 40
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 300
+      selectPolicy: Max
+      policies:
+        - type: Pods
+          value: 3
+          periodSeconds: 300
+        - type: Percent
+          value: 40
+          periodSeconds: 300
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      selectPolicy: Min
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 300
+        - type: Percent
+          value: 20
+          periodSeconds: 300

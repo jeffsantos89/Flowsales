@@ -1,0 +1,64 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ai-ingress
+  namespace: ai
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/whitelist-source-range: "192.168.1.0/24, 203.0.113.0/24"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      if ($http_x_forwarded_for ~ ".*") {
+        return 403;
+      }
+      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "X-XSS-Protection: 1; mode=block";
+      more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains; preload";
+    nginx.ingress.kubernetes.io/enable-modsecurity: "true"
+    nginx.ingress.kubernetes.io/enable-owasp-modsecurity-crs: "true"
+    nginx.ingress.kubernetes.io/modsecurity-snippet: |
+      SecRuleEngine On
+      SecRequestBodyAccess On
+      SecResponseBodyAccess On
+      SecRequestBodyLimit 13107200
+      SecRequestBodyNoFilesLimit 131072
+      SecRequestBodyInMemoryLimit 131072
+      SecResponseBodyLimit 524288
+      SecResponseBodyMimeType text/plain text/html text/xml
+      SecRuleRemoveById 981176
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - ai.example.com
+      secretName: ai-service-tls
+  rules:
+    - host: ai.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ai-service
+                port:
+                  number: 5000
+          - path: /healthz
+            pathType: Prefix
+            backend:
+              service:
+                name: ai-service
+                port:
+                  number: 5000
+          - path: /metrics
+            pathType: Prefix
+            backend:
+              service:
+                name: ai-service
+                port:
+                  number: 5000

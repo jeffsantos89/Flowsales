@@ -1,0 +1,132 @@
+# Network Policy for internal traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-internal-traffic
+  namespace: ai-service
+  labels:
+    environment: production
+    app: ai-service
+  annotations:
+    description: "Controls internal network traffic for ai-service"
+spec:
+  podSelector:
+    matchLabels:
+      app: ai-service
+      environment: production
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: ai-service
+              environment: production
+        - namespaceSelector:
+            matchLabels:
+              name: ai-service
+              type: business
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: ai-service
+              environment: production
+        - namespaceSelector:
+            matchLabels:
+              name: ai-service
+              type: business
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 8080
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 169.254.0.0/16
+      ports:
+        - protocol: TCP
+          port: 53
+        - protocol: UDP
+          port: 53
+
+---
+# Network Policy for AI Service
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ai-service-network-policy
+  namespace: security
+  labels:
+    environment: production
+    app: ai-service
+    tier: backend
+  annotations:
+    description: "Controls network access for AI service"
+    maintainer: "DevOps Team"
+spec:
+  podSelector:
+    matchLabels:
+      app: ai-service
+      environment: production
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: api-gateway
+              environment: production
+        - namespaceSelector:
+            matchLabels:
+              type: frontend
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 8443
+    - from:
+        - podSelector:
+            matchLabels:
+              app: monitoring
+              type: prometheus
+      ports:
+        - protocol: TCP
+          port: 9090
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: database
+        - namespaceSelector:
+            matchLabels:
+              type: data
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443  # For external API calls

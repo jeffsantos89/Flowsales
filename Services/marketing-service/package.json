@@ -1,0 +1,22 @@
+{
+  "name": "marketing-service",
+  "version": "2.0.0",
+  "description": "Marketing microservice with JWT, validations, cluster, email queue, and advanced logs",
+  "main": "src/cluster.js",
+  "scripts": {
+    "start": "node src/cluster.js",
+    "migrate": "knex migrate:latest"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "dotenv": "^16.0.3",
+    "pg": "^8.10.0",
+    "knex": "^2.4.2",
+    "winston": "^3.9.0",
+    "nodemailer": "^6.9.1",
+    "bull": "^4.0.2",
+    "redis": "^3.1.2",
+    "jsonwebtoken": "^9.0.0",
+    "joi": "^17.8.3"
+  }
+}

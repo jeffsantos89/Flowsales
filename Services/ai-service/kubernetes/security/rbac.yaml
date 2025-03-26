@@ -1,0 +1,61 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ai-service-role
+  namespace: security
+  labels:
+    app: ai-service
+    environment: production
+    team: ml-ops
+  annotations:
+    description: "Production role for AI service operations"
+    owner: "ml-ops-team"
+    lastReviewed: "2024-01-16"
+rules:
+  - apiGroups: [""]
+    resources: 
+      - "pods"
+      - "services"
+      - "configmaps"
+      - "secrets"
+      - "events"
+      - "persistentvolumeclaims"
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: 
+      - "deployments"
+      - "statefulsets"
+      - "replicasets"
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: 
+      - "jobs"
+      - "cronjobs"
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["monitoring.coreos.com"]
+    resources: 
+      - "servicemonitors"
+      - "podmonitors"
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ai-service-binding
+  namespace: security
+  labels:
+    app: ai-service
+    environment: production
+    team: ml-ops
+  annotations:
+    description: "Production rolebinding for AI service"
+    owner: "ml-ops-team"
+    lastReviewed: "2024-01-16"
+subjects:
+  - kind: ServiceAccount
+    name: ai-service
+    namespace: security
+roleRef:
+  kind: Role
+  name: ai-service-role
+  apiGroup: rbac.authorization.k8s.io

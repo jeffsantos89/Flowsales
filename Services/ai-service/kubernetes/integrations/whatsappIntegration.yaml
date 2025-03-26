@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whatsapp-integration
+  namespace: ai
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: whatsapp-integration
+  template:
+    metadata:
+      labels:
+        app: whatsapp-integration
+    spec:
+      containers:
+        - name: whatsapp-integration
+          image: whatsapp-service:latest
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          env:
+            - name: WHATSAPP_API_URL
+              value: "https://graph.facebook.com/v13.0"
+            - name: WHATSAPP_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: whatsapp-secret
+                  key: api-token
+            - name: WEBHOOK_URL
+              value: "https://ai-service.example.com/webhook"
+            - name: MESSAGE_PROCESSOR
+              value: "https://ai-service.example.com/ai/chatbot"
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 3000
+            fsGroup: 2000
+      imagePullSecrets:
+        - name: regcred
+      nodeSelector:
+        disktype: ssd
+      tolerations:
+        - key: "key1"
+          operator: "Equal"
+          value: "value1"
+          effect: "NoSchedule"

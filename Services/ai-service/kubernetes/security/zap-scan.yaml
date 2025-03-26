@@ -1,0 +1,162 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: zap-security-scan
+  namespace: security
+  labels:
+    app: zap-scanner
+    type: security-tool
+    environment: production
+    team: security-ops
+  annotations:
+    description: "OWASP ZAP Security Scanner for automated security testing"
+spec:
+  schedule: "0 0 * * *"  # Run daily at midnight
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      activeDeadlineSeconds: 7200  # 2 hour timeout
+      template:
+        metadata:
+          labels:
+            app: zap-scanner
+            security: high
+            version: v1
+        spec:
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop: ["ALL"]
+          containers:
+            - name: zap-scanner
+              image: owasp/zap2docker-stable:latest
+              imagePullPolicy: Always
+              resources:
+                requests:
+                  memory: "2Gi"
+                  cpu: "1000m"
+                limits:
+                  memory: "4Gi"
+                  cpu: "2000m"
+              command:
+                - /zap/zap-baseline.py
+                - "-t"
+                - "$(TARGET_URL)"
+                - "-r"
+                - "report.html"
+                - "-I"
+                - "-j"
+                - "--auto"
+                - "-l"
+                - "WARN"
+                - "-z"
+                - "'-config alertThreshold=$(ALERT_THRESHOLD) -config attackStrength=$(ATTACK_STRENGTH)'"
+              env:
+                - name: TARGET_URL
+                  valueFrom:
+                    configMapKeyRef:
+                      name: zap-config
+                      key: target_url
+                - name: ALERT_THRESHOLD
+                  valueFrom:
+                    configMapKeyRef:
+                      name: zap-config
+                      key: alert_threshold
+                - name: ATTACK_STRENGTH
+                  valueFrom:
+                    configMapKeyRef:
+                      name: zap-config
+                      key: attack_strength
+              volumeMounts:
+                - name: zap-reports
+                  mountPath: /zap/reports
+                - name: zap-config
+                  mountPath: /zap/config
+                - name: tmp
+                  mountPath: /tmp
+              livenessProbe:
+                exec:
+                  command: ["pgrep", "java"]
+                initialDelaySeconds: 60
+                periodSeconds: 60
+                timeoutSeconds: 5
+                failureThreshold: 3
+              readinessProbe:
+                exec:
+                  command: ["test", "-f", "/zap/zap.pid"]
+                initialDelaySeconds: 30
+                periodSeconds: 10
+          volumes:
+            - name: zap-reports
+              persistentVolumeClaim:
+                claimName: zap-reports-pvc
+            - name: zap-config
+              configMap:
+                name: zap-config
+            - name: tmp
+              emptyDir: {}
+          restartPolicy: Never
+          terminationGracePeriodSeconds: 60
+          affinity:
+            nodeAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 1
+                  preference:
+                    matchExpressions:
+                      - key: security-workload
+                        operator: In
+                        values:
+                          - "true"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zap-config
+  namespace: security
+data:
+  target_url: "https://ai-service.example.com"
+  alert_threshold: "Medium"
+  attack_strength: "High"
+  zap-config.conf: |
+    # ZAP Configuration
+    alertThreshold=Medium
+    attackStrength=High
+    maxAlertsPerRule=10
+    maxDuration=60
+    maxScansInUI=5
+    scanHeadersAllRequests=true
+    supportedTLSProtocols=TLSv1.2,TLSv1.3
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: zap-reports-pvc
+  namespace: security
+  annotations:
+    backup: "true"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: zap-scanner-monitor
+  namespace: security
+spec:
+  selector:
+    matchLabels:
+      app: zap-scanner
+  endpoints:
+    - port: metrics

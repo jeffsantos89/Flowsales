@@ -1,0 +1,175 @@
+version: "3.8"
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: flowsale
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - backend
+
+  auth-service:
+    image: your-registry/auth-service:latest
+    container_name: auth-service
+    depends_on:
+      - postgres
+    environment:
+      PORT: 3001
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_NAME: flowsale
+      NODE_ENV: development
+    ports:
+      - "3001:3001"
+    networks:
+      - backend
+
+  payment-service:
+    image: your-registry/payment-service:latest
+    container_name: payment-service
+    depends_on:
+      - postgres
+    environment:
+      PORT: 3002
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_NAME: flowsale
+      NODE_ENV: development
+    ports:
+      - "3002:3002"
+    networks:
+      - backend
+
+  leads-service:
+    image: your-registry/leads-service:latest
+    container_name: leads-service
+    depends_on:
+      - postgres
+    environment:
+      PORT: 3003
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_NAME: flowsale
+      NODE_ENV: development
+    ports:
+      - "3003:3003"
+    networks:
+      - backend
+
+  crm-service:
+    image: your-registry/crm-service:latest
+    container_name: crm-service
+    depends_on:
+      - postgres
+    environment:
+      PORT: 3004
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_NAME: flowsale
+      NODE_ENV: development
+    ports:
+      - "3004:3004"
+    networks:
+      - backend
+
+  voip-service:
+    image: your-registry/voip-service:latest
+    container_name: voip-service
+    depends_on:
+      - postgres
+    environment:
+      PORT: 3005
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_NAME: flowsale
+      NODE_ENV: development
+    ports:
+      - "3005:3005"
+    networks:
+      - backend
+
+  marketing-service:
+    image: your-registry/marketing-service:latest
+    container_name: marketing-service
+    depends_on:
+      - postgres
+    environment:
+      PORT: 3006
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_NAME: flowsale
+      NODE_ENV: development
+    ports:
+      - "3006:3006"
+    networks:
+      - backend
+
+  integrations-service:
+    image: your-registry/integrations-service:latest
+    container_name: integrations-service
+    depends_on:
+      - postgres
+    environment:
+      PORT: 3007
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_NAME: flowsale
+      NODE_ENV: development
+    ports:
+      - "3007:3007"
+    networks:
+      - backend
+
+  ai-service:
+    image: your-registry/ai-service:latest
+    container_name: ai-service
+    depends_on:
+      - postgres
+    environment:
+      PORT: 3008
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_NAME: flowsale
+      NODE_ENV: development
+    ports:
+      - "3008:3008"
+    networks:
+      - backend
+
+  store-service:
+    image: your-registry/store-service:latest
+    container_name: store-service
+    depends_on:
+      - postgres
+    environment:
+      PORT: 3009
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_NAME: flowsale
+      NODE_ENV: development
+    ports:
+      - "3009:3009"
+    networks:
+      - backend
+
+volumes:
+  db_data:
+
+networks:
+  backend:
+    driver: bridge

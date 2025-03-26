@@ -1,0 +1,105 @@
+{
+  "templating": {
+    "list": [
+      {
+        "type": "datasource",
+        "name": "Datasource",
+        "label": "Datasource",
+        "query": "prometheus",
+        "refresh": 1
+      },
+      {
+        "type": "interval",
+        "name": "Interval",
+        "label": "Interval",
+        "query": "1m,5m,10m,30m,1h,6h,12h,24h",
+        "current": {
+          "text": "5m",
+          "value": "5m"
+        }
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "name": "Deployments",
+        "datasource": "$Datasource",
+        "iconColor": "rgba(255, 96, 96, 1)",
+        "enable": true,
+        "query": "changes(deployment)",
+        "titleFormat": "Deployment: {{deployment}}",
+        "textFormat": "Deployment of {{deployment}} at {{time}}"
+      }
+    ]
+  },
+  "dashboards": [
+    {
+      "title": "Performance Dashboard",
+      "panels": [
+        {
+          "type": "graph",
+          "title": "API Requests per Minute",
+          "datasource": "$Datasource",
+          "targets": [
+            {
+              "expr": "sum(rate(http_requests_total[$Interval]))",
+              "legendFormat": "{{method}} {{route}}"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "title": "Database Response Time",
+          "datasource": "$Datasource",
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum(rate(pg_query_time_seconds_bucket[$Interval])) by (le))",
+              "legendFormat": "95th percentile"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "title": "Error Rates by Service",
+          "datasource": "$Datasource",
+          "targets": [
+            {
+              "expr": "sum(rate(http_requests_total{status=~'5..'}[$Interval])) by (service)",
+              "legendFormat": "{{service}}"
+            }
+          ]
+        }
+      ],
+      "refresh": "10s"
+    },
+    {
+      "title": "Marketing Security Dashboard",
+      "panels": [
+        {
+          "type": "table",
+          "title": "Blocked Requests by WAF",
+          "datasource": "$Datasource",
+          "targets": [
+            {
+              "expr": "sum(rate(waf_blocked_requests_total[$Interval])) by (rule)",
+              "legendFormat": "Rule {{rule}}"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "title": "API Key Usage",
+          "datasource": "$Datasource",
+          "targets": [
+            {
+              "expr": "sum(rate(api_requests_total{apikey=~'.+'}[$Interval]))",
+              "legendFormat": "{{apikey}}"
+            }
+          ]
+        }
+      ],
+      "refresh": "10s"
+    }
+  ]
+}

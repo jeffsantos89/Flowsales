@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "ai-service.fullname" . }}-logging
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ai-service.labels" . | nindent 4 }}
+    app.kubernetes.io/component: logging
+    storage.kubernetes.io/type: managed
+  annotations:
+    helm.sh/resource-policy: keep
+    volume.beta.kubernetes.io/storage-class: {{ .Values.logging.storageClass | default "standard" }}
+    volume.beta.kubernetes.io/storage-provisioner: kubernetes.io/aws-ebs
+    backup.velero.io/backup-volumes: "true"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.logging.storage.size | default "10Gi" }}
+  storageClassName: {{ .Values.logging.storageClass | default "standard" }}
+  volumeMode: Filesystem
+  selector:
+    matchLabels:
+      {{- include "ai-service.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: logging
+  {{- if .Values.logging.storage.volumeName }}
+  volumeName: {{ .Values.logging.storage.volumeName }}
+  {{- end }}

@@ -1,0 +1,103 @@
+{
+    "version": "2.0.0",
+    "metadata": {
+        "name": "Advanced Quantum Computation Samples",
+        "description": "Production-ready quantum computation configurations",
+        "lastModified": "2024-01-10T12:00:00Z",
+        "author": "Quantum Computing Team"
+    },
+    "configurations": {
+        "errorCorrection": {
+            "enabled": true,
+            "method": "surface_code",
+            "threshold": 0.001
+        },
+        "noiseModel": {
+            "type": "realistic",
+            "decoherenceTime": 100e-6,
+            "gateErrors": 0.0001
+        }
+    },
+    "quantumCircuits": [
+        {
+            "id": "QC-001",
+            "name": "Quantum Fourier Transform",
+            "qubits": 5,
+            "operations": [
+                {
+                    "type": "hadamard",
+                    "target": [0, 1, 2, 3, 4],
+                    "timing": "t0"
+                },
+                {
+                    "type": "controlled-phase",
+                    "control": 0,
+                    "target": 1,
+                    "angle": "pi/2",
+                    "timing": "t1"
+                },
+                {
+                    "type": "cnot",
+                    "control": 2,
+                    "target": 3,
+                    "timing": "t2"
+                }
+            ],
+            "measurements": {
+                "basis": "computational",
+                "qubits": [0, 1, 2, 3, 4]
+            }
+        },
+        {
+            "id": "QC-002",
+            "name": "Quantum Error Correction",
+            "qubits": 7,
+            "operations": [
+                {
+                    "type": "stabilizer",
+                    "qubits": [0, 1, 2, 3],
+                    "syndrome": "X"
+                },
+                {
+                    "type": "recovery",
+                    "method": "surface_code",
+                    "target": [4, 5, 6]
+                }
+            ]
+        }
+    ],
+    "algorithms": {
+        "optimization": {
+            "type": "QAOA",
+            "parameters": {
+                "depth": 3,
+                "convergenceCriteria": 0.001,
+                "maxIterations": 1000
+            }
+        },
+        "simulation": {
+            "type": "VQE",
+            "parameters": {
+                "ansatz": "hardware_efficient",
+                "optimizer": "SPSA",
+                "maxEvaluations": 500
+            }
+        }
+    },
+    "hardware": {
+        "requirements": {
+            "minimumQubits": 5,
+            "coherenceTime": "100us",
+            "gateSpeed": "50ns"
+        },
+        "connectivity": {
+            "topology": "full",
+            "maxDistance": 2
+        }
+    },
+    "validation": {
+        "checkpoints": true,
+        "errorThreshold": 0.005,
+        "requiredFidelity": 0.99
+    }
+}

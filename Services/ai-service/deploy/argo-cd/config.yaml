@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-rbac-config
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-rbac
+    app.kubernetes.io/part-of: argocd
+data:
+  # Define a política padrão como "somente leitura"
+  policy.default: role:readonly
+
+  # 🔹 Políticas de controle de acesso para diferentes funções
+  policy.csv: |
+    # 🚀 Admin do Projeto AI-Service
+    p, proj:ai-service:admin, applications, create, ai-service/*, allow
+    p, proj:ai-service:admin, applications, update, ai-service/*, allow
+    p, proj:ai-service:admin, applications, delete, ai-service/*, allow
+    p, proj:ai-service:admin, applications, sync, ai-service/*, allow
+    p, proj:ai-service:admin, applications, override, ai-service/*, allow
+    p, proj:ai-service:admin, applications/finalizers, update, ai-service/*, allow
+    p, proj:ai-service:admin, certificates, create, ai-service/*, allow
+    p, proj:ai-service:admin, clusters, get, ai-service/*, allow
+    p, proj:ai-service:admin, repositories, create, ai-service/*, allow
+    p, proj:ai-service:admin, projects, get, ai-service/*, allow
+
+    # 👨‍💻 Desenvolvedores AI-Service (acesso limitado)
+    p, proj:ai-service:developer, applications, get, ai-service/*, allow
+    p, proj:ai-service:developer, applications, sync, ai-service/*, allow
+    p, proj:ai-service:developer, applications/logs, get, ai-service/*, allow
+    p, proj:ai-service:developer, exec, create, ai-service/*, allow
+
+    # 👀 Visualizadores AI-Service (apenas leitura)
+    p, proj:ai-service:viewer, applications, get, ai-service/*, allow
+    p, proj:ai-service:viewer, applications/logs, get, ai-service/*, allow
+    p, proj:ai-service:viewer, projects, get, ai-service/*, allow
+
+    # 🔹 Associações de grupos aos papéis
+    g, platform-admin, proj:ai-service:admin
+    g, ai-team-lead, proj:ai-service:admin
+    g, ai-developer, proj:ai-service:developer
+    g, ai-analyst, proj:ai-service:viewer
+
+  # 🔐 Configuração de autenticação via SSO
+  scopes: |
+    [groups, email, profile]
+
+  # 🚨 Exclusão de certos recursos sensíveis para segurança
+  resource.exclusions: |
+    - apiGroups: [""]
+      kinds: ["ResourceQuota", "LimitRange"]
+      clusters: ["*"]
+
+  # 🔹 Papéis embutidos para acesso padrão
+  policy.csv.default: |
+    role:readonly,applications,get,*/*,allow
+    role:readonly,certificates,get,*/*,allow
+    role:readonly,clusters,get,*/*,allow
+    role:readonly,repositories,get,*/*,allow
+    role:readonly,projects,get,*/*,allow

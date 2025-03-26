@@ -1,0 +1,28 @@
+type: Load Test
+config:
+  target: http://api.flowsale.com.br
+  phases:
+    - duration: 300  # 5 minutos
+      arrivalRate: 50  # 50 requisições por segundo
+    - duration: 600  # 10 minutos
+      arrivalRate: 100  # 100 requisições por segundo
+    - duration: 300  # 5 minutos
+      arrivalRate: 200  # 200 requisições por segundo
+scenarios:
+  - flow:
+      - get:
+          url: "/api/leads"
+      - post:
+          url: "/api/leads"
+          json:
+            name: "Teste Lead"
+            email: "test@example.com"
+            source: "API Test"
+  - flow:
+      - get:
+          url: "/api/campaigns"
+      - post:
+          url: "/api/campaigns"
+          json:
+            name: "Campanha Teste"
+            type: "Email"

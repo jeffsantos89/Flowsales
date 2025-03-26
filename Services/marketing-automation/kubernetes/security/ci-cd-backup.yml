@@ -1,0 +1,50 @@
+name: Backup and Security
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+
+jobs:
+  encrypted-backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up PostgreSQL
+        uses: postgres-actions/setup-postgres@v1
+        with:
+          postgres-version: '15'
+          username: ${{ secrets.DATABASE_USER }}
+          password: ${{ secrets.DATABASE_PASSWORD }}
+          database: flowsale
+
+      - name: Create backup directory
+        run: mkdir -p /backups
+
+      - name: Run Encrypted Backup
+        run: |
+          pg_dump -U ${{ secrets.DATABASE_USER }} -F c flowsale > ${{ env.BACKUP_PATH }}
+          if [ $? -ne 0 ]; then
+            echo "Backup failed"
+            exit 1
+          fi
+          openssl enc -${{ env.ENCRYPTION_ALGORITHM }} -salt -in ${{ env.BACKUP_PATH }} -out ${{ env.ENCRYPTED_BACKUP_PATH }} -k ${{ secrets.ENCRYPTION_KEY }}
+          if [ $? -ne 0 ]; then
+            echo "Encryption failed"
+            exit 1
+          fi
+        env:
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_USER: ${{ secrets.DATABASE_USER }}
+          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+          BACKUP_PATH: /backups/flowsale.sql
+          ENCRYPTED_BACKUP_PATH: /backups/flowsale_encrypted.sql
+          ENCRYPTION_ALGORITHM: aes-256-cbc
+
+      - name: Upload Backup to Storage
+        uses: actions/upload-artifact@v2
+        with:
+          name: encrypted-backup
+          path: /backups/flowsale_encrypted.sql

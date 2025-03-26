@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflare-config
+data:
+  CLOUDFLARE_ZONE_ID: ${CLOUDFLARE_ZONE_ID}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cloudflare-secrets
+type: Opaque
+data:
+  CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN}
+  CLOUDFLARE_API_EMAIL: ${CLOUDFLARE_API_EMAIL}
+  CLOUDFLARE_API_KEY: ${CLOUDFLARE_API_KEY}
+  CLOUDFLARE_API_USER_SERVICE_KEY: ${CLOUDFLARE_API_USER_SERVICE_KEY}

@@ -1,0 +1,86 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: intelligent-backup
+  namespace: database
+  labels:
+    app: backup
+    monitoring: enabled
+spec:
+  schedule: "0 2 * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          annotations:
+            prometheus.io/scrape: "true"
+            prometheus.io/path: "/metrics"
+            prometheus.io/port: "8000"
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: my-backup-tool:latest
+              args: ["/backup.sh"]
+              env:
+                - name: BACKUP_TYPE
+                  value: "incremental"
+                - name: STORAGE_BUCKET
+                  value: "s3://my-database-backups"
+                - name: RETENTION_DAYS
+                  value: "30"
+                - name: AWS_ROLE_ARN
+                  value: "arn:aws:iam::123456789012:role/backup-role"
+                - name: SLACK_WEBHOOK_URL
+                  value: "https://hooks.slack.com/services/TOKEN"
+              resources:
+                requests:
+                  memory: "512Mi"
+                  cpu: "500m"
+                limits:
+                  memory: "1Gi"
+                  cpu: "1"
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: "/backups"
+                - name: log-storage
+                  mountPath: "/var/log/backup"
+            - name: log-exporter
+              image: grafana/loki-promtail:latest
+              args:
+                - "-config.file=/etc/promtail/promtail-config.yaml"
+              volumeMounts:
+                - name: log-storage
+                  mountPath: "/var/log/backup"
+                - name: promtail-config
+                  mountPath: "/etc/promtail"
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: backup-pvc
+            - name: log-storage
+              emptyDir: {}
+            - name: promtail-config
+              configMap:
+                name: promtail-config
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 3000
+            fsGroup: 2000
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: kubernetes.io/hostname
+                        operator: In
+                        values:
+                          - backup-node
+          tolerations:
+            - key: "backup-required"
+              operator: "Equal"
+              value: "true"
+              effect: "NoSchedule"
+      backoffLimit: 4
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1

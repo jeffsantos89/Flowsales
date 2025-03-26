@@ -1,0 +1,152 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-logging-service
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ai-service.labels" . | nindent 4 }}
+    app.kubernetes.io/component: logging
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "ai-service.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: logging
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-logging-service
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ai-service.labels" . | nindent 4 }}
+    app.kubernetes.io/component: logging
+spec:
+  replicas: {{ .Values.logging.replicaCount | default 2 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      {{- include "ai-service.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: logging
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap-logging.yaml") . | sha256sum }}
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+      labels:
+        {{- include "ai-service.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: logging
+    spec:
+      serviceAccountName: {{ .Release.Name }}-logging-sa
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: logging-service
+          image: "{{ .Values.logging.image.repository }}:{{ .Values.logging.image.tag }}"
+          imagePullPolicy: {{ .Values.logging.image.pullPolicy | default "IfNotPresent" }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+          resources:
+            limits:
+              cpu: {{ .Values.logging.resources.limits.cpu | default "500m" }}
+              memory: {{ .Values.logging.resources.limits.memory | default "512Mi" }}
+            requests:
+              cpu: {{ .Values.logging.resources.requests.cpu | default "200m" }}
+              memory: {{ .Values.logging.resources.requests.memory | default "256Mi" }}
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: LOG_LEVEL
+              value: {{ .Values.logging.logLevel | default "info" }}
+          envFrom:
+            - configMapRef:
+                name: {{ .Release.Name }}-logging-config
+            - secretRef:
+                name: {{ .Release.Name }}-logging-secrets
+          volumeMounts:
+            - name: logs
+              mountPath: /app/logs
+            - name: config
+              mountPath: /app/config
+      volumes:
+        - name: logs
+          emptyDir: {}
+        - name: config
+          configMap:
+            name: {{ .Release.Name }}-logging-config
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    {{- include "ai-service.selectorLabels" . | nindent 20 }}
+                    app.kubernetes.io/component: logging
+                topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Release.Name }}-logging-hpa
+  namespace: {{ .Release.Namespace }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Release.Name }}-logging-service
+  minReplicas: {{ .Values.logging.autoscaling.minReplicas | default 2 }}
+  maxReplicas: {{ .Values.logging.autoscaling.maxReplicas | default 10 }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.logging.autoscaling.targetCPUUtilizationPercentage | default 80 }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.logging.autoscaling.targetMemoryUtilizationPercentage | default 80 }}

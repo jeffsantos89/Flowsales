@@ -1,0 +1,21 @@
+server:
+  ha:
+    enabled: true
+    replicas: 3
+
+  dataStorage:
+    size: 10Gi
+    storageClass: "fast"
+
+  auditStorage:
+    enabled: true
+    mountPath: "/vault/audit"
+
+ui:
+  enabled: true
+  serviceType: LoadBalancer
+
+injector:
+  enabled: true
+  metrics:
+    enabled: true

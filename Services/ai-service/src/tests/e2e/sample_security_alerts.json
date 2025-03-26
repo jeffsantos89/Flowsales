@@ -1,0 +1,127 @@
+{
+    "version": "2.0",
+    "metadata": {
+        "generatedAt": "2024-01-10T12:00:00Z",
+        "environment": "production",
+        "systemVersion": "1.5.0"
+    },
+    "securityAlerts": [
+        {
+            "alertId": "SEC-2024-001",
+            "timestamp": "2024-01-10T10:15:30.123Z",
+            "severity": "CRITICAL",
+            "type": "INTRUSION_DETECTION",
+            "status": "ACTIVE",
+            "source": {
+                "ipAddress": "192.168.1.100",
+                "geolocation": {
+                    "country": "Brazil",
+                    "city": "São Paulo",
+                    "coordinates": {
+                        "latitude": -23.550520,
+                        "longitude": -46.633308
+                    }
+                },
+                "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+            },
+            "target": {
+                "resource": "api-gateway",
+                "endpoint": "/api/v1/users",
+                "asset": "user-service"
+            },
+            "details": {
+                "description": "Multiple failed authentication attempts detected",
+                "attackVector": "BRUTE_FORCE",
+                "impactedServices": ["authentication-service", "user-service"],
+                "riskScore": 9.8,
+                "cvss": {
+                    "version": "3.1",
+                    "score": 9.8,
+                    "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+                }
+            },
+            "mitigation": {
+                "automated": true,
+                "actions": [
+                    "IP_BLOCKED",
+                    "ACCOUNT_LOCKED",
+                    "NOTIFICATION_SENT"
+                ],
+                "recommendedActions": [
+                    "Review access logs",
+                    "Update security policies",
+                    "Enable 2FA"
+                ]
+            }
+        },
+        {
+            "alertId": "SEC-2024-002",
+            "timestamp": "2024-01-10T11:20:15.456Z",
+            "severity": "HIGH",
+            "type": "MALWARE_DETECTED",
+            "status": "INVESTIGATING",
+            "source": {
+                "ipAddress": "10.0.0.50",
+                "geolocation": {
+                    "country": "Brazil",
+                    "city": "Rio de Janeiro",
+                    "coordinates": {
+                        "latitude": -22.906847,
+                        "longitude": -43.172896
+                    }
+                },
+                "userAgent": "Python-urllib/3.9"
+            },
+            "target": {
+                "resource": "file-storage",
+                "endpoint": "/upload",
+                "asset": "storage-service"
+            },
+            "details": {
+                "description": "Suspicious file upload detected with potential malware signature",
+                "attackVector": "MALICIOUS_PAYLOAD",
+                "impactedServices": ["storage-service"],
+                "riskScore": 8.5,
+                "malwareHash": "a1b2c3d4e5f6g7h8i9j0",
+                "malwareType": "RANSOMWARE"
+            },
+            "mitigation": {
+                "automated": true,
+                "actions": [
+                    "FILE_QUARANTINED",
+                    "SESSION_TERMINATED",
+                    "SCAN_TRIGGERED"
+                ],
+                "recommendedActions": [
+                    "Analyze quarantined file",
+                    "Scan related systems",
+                    "Update antivirus signatures"
+                ]
+            }
+        }
+    ],
+    "statistics": {
+        "totalAlerts": 2,
+        "severityDistribution": {
+            "CRITICAL": 1,
+            "HIGH": 1,
+            "MEDIUM": 0,
+            "LOW": 0
+        },
+        "statusDistribution": {
+            "ACTIVE": 1,
+            "INVESTIGATING": 1,
+            "RESOLVED": 0,
+            "CLOSED": 0
+        }
+    },
+    "compliance": {
+        "gdpr": true,
+        "hipaa": true,
+        "pci": true,
+        "standards": [
+            "ISO27001",
+            "NIST"
+        ]
+    }
+}

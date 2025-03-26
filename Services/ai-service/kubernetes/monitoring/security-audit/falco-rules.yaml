@@ -1,0 +1,29 @@
+customRules:
+  - rule: Detect Critical File Access
+    desc: "Detecta acessos não autorizados a arquivos críticos do sistema"
+    condition: >
+      open_read or open_write and
+      (
+      fd.filename startswith '/etc/passwd' or
+      fd.filename startswith '/etc/shadow' or
+      fd.filename startswith '/etc/sudoers' or
+    fd.filename startswith '/etc/kubernetes' or
+    fd.filename startswith '/etc/ssl' or
+    fd.filename in ('/root/.ssh/authorized_keys', '/etc/hosts')
+    ) and not 
+    (
+      proc.name in (systemd, sshd, sudo, su) or
+      container.id=host
+    )
+  output: >
+    Acesso suspeito a arquivo crítico do sistema
+    (usuario=%user.name comando=%proc.cmdline 
+    arquivo=%fd.filename container=%container.name)
+  priority: CRITICAL
+  tags: [filesystem, mitre_credential_access]
+  enabled: true
+  append: false
+  source: runtime
+  exceptions:
+    - name: authorized_processes
+      processes: [backup_agent, security_scanner]

@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: failover-config
+  namespace: ai
+  labels:
+    app: ai-service
+    component: monitoring
+data:
+  failover.sh: |
+    #!/bin/bash
+    set -e
+
+    # Configuration
+    SERVICE_NAME="ai-service"
+    SERVICE_PORT="4000"
+    HEALTH_ENDPOINT="/health"
+    MAX_RETRIES=3
+    RETRY_INTERVAL=5
+    MIN_REPLICAS=2
+    MAX_REPLICAS=5
+    NAMESPACE="ai"
+
+    # Logging function
+    log() {
+      echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1"
+    }
+
+    # Health check function
+    check_health() {
+      for i in $(seq 1 $MAX_RETRIES); do
+        if curl -s "http://${SERVICE_NAME}:${SERVICE_PORT}${HEALTH_ENDPOINT}" | grep -q "ok"; then
+          return 0
+        fi
+        log "Health check attempt $i of $MAX_RETRIES failed. Waiting ${RETRY_INTERVAL}s..."
+        sleep $RETRY_INTERVAL
+      done
+      return 1
+    }
+
+    # Get current replica count
+    get_replicas() {
+      kubectl get deployment $SERVICE_NAME -n $NAMESPACE -o=jsonpath='{.spec.replicas}'
+    }
+
+    # Main logic
+    log "Starting health check for $SERVICE_NAME"
+
+    if ! check_health; then
+      log "SERVICE is unhealthy! Starting failover procedure..."
+      
+      current_replicas=$(get_replicas)
+      new_replicas=$((current_replicas + 1))
+
+      if [ $new_replicas -le $MAX_REPLICAS ]; then
+        log "Scaling deployment from $current_replicas to $new_replicas replicas"
+        kubectl scale deployment $SERVICE_NAME -n $NAMESPACE --replicas=$new_replicas
+
+        # Wait for new pods to be ready
+        kubectl rollout status deployment/$SERVICE_NAME -n $NAMESPACE --timeout=300s
+      else
+        log "WARNING: Maximum replica count ($MAX_REPLICAS) reached!"
+        exit 1
+      fi
+    else
+      log "SERVICE is healthy"
+      
+      current_replicas=$(get_replicas)
+      if [ $current_replicas -gt $MIN_REPLICAS ]; then
+        log "Scaling down to minimum replicas"
+        kubectl scale deployment $SERVICE_NAME -n $NAMESPACE --replicas=$MIN_REPLICAS
+      fi
+    fi

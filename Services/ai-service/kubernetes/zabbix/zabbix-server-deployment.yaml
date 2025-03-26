@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zabbix-server
+  labels:
+    app: zabbix
+    component: server
+  annotations:
+    description: "Zabbix server deployment for monitoring"
+spec:
+  replicas: 2  # Increased for high availability
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: zabbix
+      component: server
+  template:
+    metadata:
+      labels:
+        app: zabbix
+        component: server
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "10051"
+    spec:
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        fsGroup: 1997
+        runAsUser: 1997
+        runAsNonRoot: true
+      containers:
+        - name: zabbix-server
+          image: zabbix/zabbix-server-pgsql:6.0-ubuntu-latest  # Specific version instead of latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: DB_SERVER_HOST
+              value: "postgres-cluster"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: password
+            - name: ZBX_TIMEOUT
+              value: "30"
+            - name: ZBX_CACHESIZE
+              value: "128M"
+          ports:
+            - name: zabbix-server
+              containerPort: 10051
+              protocol: TCP
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2"
+              memory: "2Gi"
+          livenessProbe:
+            tcpSocket:
+              port: 10051
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            tcpSocket:
+              port: 10051
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: zabbix-data
+              mountPath: /var/lib/zabbix
+      volumes:
+        - name: zabbix-data
+          persistentVolumeClaim:
+            claimName: zabbix-server-pvc
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - zabbix
+                topologyKey: kubernetes.io/hostname

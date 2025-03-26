@@ -1,0 +1,90 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Values.rbac.roleName | default "ai-service-role" }}
+  namespace: {{ .Values.namespace | default "ai-service" }}
+  labels:
+    app: {{ .Values.appName | default "ai-service" }}
+    environment: {{ .Values.environment | default "production" }}
+  annotations:
+    description: "Role to manage resources for {{ .Values.appName | default "ai-service" }} in {{ .Values.environment | default "production" }} environment"
+rules:
+  # Permissions for core resources
+  - apiGroups: [""]
+    resources:
+      - "pods"
+      - "services"
+      - "configmaps"
+      - "secrets"
+      - "persistentvolumeclaims"
+    verbs:
+      - "get"
+      - "list"
+      - "watch"
+      - "create"
+      - "update"
+      - "patch"
+      - "delete"
+
+  # Permissions for apps resources
+  - apiGroups: ["apps"]
+    resources:
+      - "deployments"
+      - "statefulsets"
+      - "daemonsets"
+      - "replicasets"
+    verbs:
+      - "get"
+      - "list"
+      - "watch"
+      - "create"
+      - "update"
+      - "patch"
+      - "delete"
+
+  # Permissions for batch resources
+  - apiGroups: ["batch"]
+    resources:
+      - "jobs"
+      - "cronjobs"
+    verbs:
+      - "get"
+      - "list"
+      - "watch"
+      - "create"
+      - "update"
+      - "patch"
+      - "delete"
+
+  # Permissions for custom resources
+  - apiGroups: ["{{ .Values.customApiGroup | default "custom.ai-service.io" }}"]
+    resources:
+      - "{{ .Values.customResource | default "customresource" }}"
+    verbs:
+      - "get"
+      - "list"
+      - "watch"
+      - "create"
+      - "update"
+      - "patch"
+      - "delete"
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Values.rbac.roleBindingName | default "ai-service-rolebinding" }}
+  namespace: {{ .Values.namespace | default "ai-service" }}
+  labels:
+    app: {{ .Values.appName | default "ai-service" }}
+    environment: {{ .Values.environment | default "production" }}
+  annotations:
+    description: "RoleBinding to bind {{ .Values.rbac.roleName | default "ai-service-role" }} role to {{ .Values.serviceAccountName | default "ai-service-sa" }} service account"
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.serviceAccountName | default "ai-service-sa" }}
+    namespace: {{ .Values.namespace | default "ai-service" }}
+roleRef:
+  kind: Role
+  name: {{ .Values.rbac.roleName | default "ai-service-role" }}
+  apiGroup: rbac.authorization.k8s.io

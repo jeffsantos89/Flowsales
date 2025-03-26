@@ -1,0 +1,239 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zap-scan-config
+  namespace: security
+  labels:
+    app: zap-security
+    environment: production
+    team: security-ops
+data:
+  target: "http://api.flowsale.com.br"
+  scanType: "full"
+  reportFile: "zap-report.html"
+  contextFile: "zap-context.context"
+  authentication: |
+    type: "form"
+    loginUrl: "http://api.flowsale.com.br/login"
+    username: "${ZAP_AUTH_USERNAME}"
+    password: "${ZAP_AUTH_PASSWORD}"
+  scanPolicy: "API-scan-policy"
+  additionalOptions: "--auto --auth-detect --hook=/zap/auth.js"
+  alertThreshold: "Medium"
+  maxDuration: "3h"
+  maxRetries: "3"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: zap-credentials
+  namespace: security
+  labels:
+    app: zap-security
+type: Opaque
+data:
+  username: BASE64_ENCODED_USERNAME
+  password: BASE64_ENCODED_PASSWORD
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: zap-security-scan
+  namespace: security
+  labels:
+    app: zap-security
+    type: security-scanning
+    criticality: high
+spec:
+  schedule: "0 0 * * *"
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      activeDeadlineSeconds: 10800  # 3 hours
+      template:
+        metadata:
+          labels:
+            app: zap-security
+            security-context: restricted
+          annotations:
+            prometheus.io/scrape: "true"
+            prometheus.io/port: "9090"
+        spec:
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+          containers:
+          - name: zap
+            image: owasp/zap2docker-stable:latest
+            imagePullPolicy: Always
+            resources:
+              requests:
+                memory: "2Gi"
+                cpu: "1"
+              limits:
+                memory: "4Gi"
+                cpu: "2"
+            command: ["/zap/zap-full-scan.py"]
+            args:
+              - "-t"
+              - "$(TARGET)"
+              - "-r"
+              - "$(REPORT_FILE)"
+              - "-c"
+              - "$(CONTEXT_FILE)"
+              - "-z"
+              - "$(ADDITIONAL_OPTIONS)"
+              - "-l"
+              - "$(ALERT_THRESHOLD)"
+              - "--hook=/zap/auth.js"
+              - "--max-duration"
+              - "$(MAX_DURATION)"
+            env:
+            - name: TARGET
+              valueFrom:
+                configMapKeyRef:
+                  name: zap-scan-config
+                  key: target
+            - name: REPORT_FILE
+              valueFrom:
+                configMapKeyRef:
+                  name: zap-scan-config
+                  key: reportFile
+            - name: CONTEXT_FILE
+              valueFrom:
+                configMapKeyRef:
+                  name: zap-scan-config
+                  key: contextFile
+            - name: ADDITIONAL_OPTIONS
+              valueFrom:
+                configMapKeyRef:
+                  name: zap-scan-config
+                  key: additionalOptions
+            - name: ALERT_THRESHOLD
+              valueFrom:
+                configMapKeyRef:
+                  name: zap-scan-config
+                  key: alertThreshold
+            - name: MAX_DURATION
+              valueFrom:
+                configMapKeyRef:
+                  name: zap-scan-config
+                  key: maxDuration
+            - name: ZAP_AUTH_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: zap-credentials
+                  key: username
+            - name: ZAP_AUTH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: zap-credentials
+                  key: password
+            volumeMounts:
+            - name: zap-reports
+              mountPath: /zap/wrk
+            - name: zap-scripts
+              mountPath: /zap/scripts
+            livenessProbe:
+              httpGet:
+                path: /
+                port: 9090
+              initialDelaySeconds: 180
+              periodSeconds: 60
+            readinessProbe:
+              httpGet:
+                path: /
+                port: 9090
+              initialDelaySeconds: 30
+              periodSeconds: 10
+          volumes:
+          - name: zap-reports
+            persistentVolumeClaim:
+              claimName: zap-reports-pvc
+          - name: zap-scripts
+            configMap:
+              name: zap-scripts
+          restartPolicy: Never
+          serviceAccountName: zap-scanner
+          nodeSelector:
+            security-workload: "true"
+          tolerations:
+          - key: "security-workload"
+            operator: "Equal"
+            value: "true"
+            effect: "NoSchedule"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: zap-reports-pvc
+  namespace: security
+  labels:
+    app: zap-security
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: standard
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: zap-scanner
+  namespace: security
+  labels:
+    app: zap-security
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: zap-scanner-role
+  namespace: security
+rules:
+- apiGroups: [""]
+  resources: ["pods", "pods/log", "configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: zap-scanner-role-binding
+  namespace: security
+roleRef:
+  kind: Role
+  name: zap-scanner-role
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  name: zap-scanner
+  namespace: security
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: zap-scanner-rolebinding
+  namespace: security
+subjects:
+- kind: ServiceAccount
+  name: zap-scanner
+  namespace: security
+roleRef:
+  kind: Role
+  name: zap-scanner-role
+  apiGroup: rbac.authorization.k8s.io

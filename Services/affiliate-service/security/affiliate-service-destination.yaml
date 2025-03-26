@@ -1,0 +1,19 @@
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: affiliate-service-destination
+  namespace: default
+spec:
+  host: affiliate-service.default.svc.cluster.local  # Host do serviço
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL  # Exige mTLS entre os serviços
+    connectionPool:
+      tcp:
+        maxConnections: 100  # Limita conexões simultâneas
+      http:
+        http2MaxRequests: 1000  # Ajuste para HTTP/2, se aplicável
+    outlierDetection:
+      consecutiveErrors: 5  # Circuit breaker: falhas antes de isolar o serviço
+      interval: 5s
+      baseEjectionTime: 30s

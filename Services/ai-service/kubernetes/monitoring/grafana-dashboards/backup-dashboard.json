@@ -1,0 +1,156 @@
+{
+    "dashboard": {
+        "title": "Backup Operations Dashboard",
+        "tags": ["backup", "monitoring", "operations"],
+        "timezone": "browser",
+        "refresh": "5m",
+        "schemaVersion": 30,
+        "time": {
+            "from": "now-24h",
+            "to": "now"
+        },
+        "panels": [
+            {
+                "title": "Backup Job Status",
+                "type": "stat",
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 0
+                },
+                "targets": [
+                    {
+                        "expr": "kube_job_failed{job='backup'}",
+                        "legendFormat": "Failed Backups",
+                        "refId": "A"
+                    },
+                    {
+                        "expr": "kube_job_complete{job='backup'}",
+                        "legendFormat": "Successful Backups",
+                        "refId": "B"
+                    }
+                ],
+                "options": {
+                    "colorMode": "value",
+                    "graphMode": "area",
+                    "justifyMode": "auto",
+                    "textMode": "auto",
+                    "reduceOptions": {
+                        "calcs": ["lastNotNull"]
+                    }
+                },
+                "fieldConfig": {
+                    "defaults": {
+                        "mappings": [],
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                { "color": "green", "value": null },
+                                { "color": "red", "value": 1 }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "title": "Backup Duration Trends",
+                "type": "timeseries",
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 0
+                },
+                "targets": [
+                    {
+                        "expr": "time() - kube_job_start_time_seconds{job='backup'}",
+                        "legendFormat": "Duration",
+                        "refId": "A"
+                    }
+                ],
+                "options": {
+                    "tooltip": {
+                        "mode": "multi"
+                    },
+                    "legend": {
+                        "showLegend": true
+                    }
+                },
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "s",
+                        "custom": {
+                            "lineWidth": 2,
+                            "fillOpacity": 10
+                        },
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                { "color": "green", "value": null },
+                                { "color": "yellow", "value": 3600 },
+                                { "color": "red", "value": 7200 }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "title": "Backup Size",
+                "type": "gauge",
+                "gridPos": {
+                    "h": 8,
+                    "w": 8,
+                    "x": 0,
+                    "y": 8
+                },
+                "targets": [
+                    {
+                        "expr": "backup_size_bytes{job='backup'}",
+                        "legendFormat": "Backup Size",
+                        "refId": "A"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "bytes",
+                        "min": 0,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                { "color": "green", "value": null },
+                                { "color": "yellow", "value": 1073741824 },
+                                { "color": "red", "value": 5368709120 }
+                            ]
+                        }
+                    }
+                }
+            }
+        ],
+        "links": [],
+        "editable": true,
+        "graphTooltip": 1,
+        "templating": {
+            "list": [
+                {
+                    "name": "namespace",
+                    "type": "query",
+                    "datasource": "Prometheus",
+                    "query": "label_values(kube_job_info{job='backup'}, namespace)"
+                }
+            ]
+        },
+        "annotations": {
+            "list": [
+                {
+                    "name": "Backup Events",
+                    "datasource": "Prometheus",
+                    "expr": "changes(kube_job_status_succeeded{job='backup'}[1m]) > 0",
+                    "enable": true,
+                    "iconColor": "green",
+                    "tags": ["backup"]
+                }
+            ]
+        }
+    }
+}

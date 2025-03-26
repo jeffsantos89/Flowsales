@@ -1,0 +1,36 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: backup-monitor
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: backup-monitor
+    app.kubernetes.io/part-of: monitoring
+    app.kubernetes.io/managed-by: prometheus-operator
+  annotations:
+    description: "Backup service monitoring configuration"
+spec:
+  selector:
+    matchLabels:
+      app: backup
+  namespaceSelector:
+    matchNames:
+      - default
+      - backup
+  endpoints:
+    - port: http
+      interval: 30s
+      scrapeTimeout: 10s
+      path: /metrics
+      honorLabels: true
+      metricRelabelings:
+        - sourceLabels: [__name__]
+          regex: 'backup_.*'
+          action: keep
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_node_name]
+          targetLabel: node
+  targetLabels:
+    - env
+    - zone
+  sampleLimit: 5000

@@ -1,0 +1,58 @@
+apiVersion: v1
+kind: SecurityAudit
+metadata:
+  name: security-audit-policy
+  namespace: monitoring
+  labels:
+    app: security-monitoring
+    environment: production
+    
+policy:
+  enforce:
+    apiSecurity:
+      - name: "api-rate-limiting"
+        enabled: true
+        maxRequestsPerMinute: 1000
+      - name: "jwt-validation"
+        enabled: true
+        algorithms: ["RS256", "ES384"]
+    databaseAccess:
+      - name: "connection-encryption"
+        enabled: true
+        minTLSVersion: "1.2"
+      - name: "access-control"
+        enabled: true
+        maxConcurrentConnections: 100
+        
+  monitor:
+    networkTraffic:
+      enabled: true
+      retentionPeriod: "30d"
+      alerting:
+        threshold: 85
+        channels: ["slack", "email"]
+    userAuthentication:
+      enabled: true
+      logging:
+        level: "INFO"
+        retention: "90d"
+      failedAttempts:
+        threshold: 5
+        lockoutPeriod: "15m"
+
+  compliance:
+    standards:
+      - "PCI-DSS"
+      - "GDPR"
+      - "SOC2"
+    scanning:
+      schedule: "0 0 * * *"
+      severity: ["CRITICAL", "HIGH"]
+
+  alerts:
+    slack:
+      webhook: "${SLACK_WEBHOOK_URL}"
+    email:
+      recipients:
+        - "security-team@company.com"
+        - "devops@company.com"

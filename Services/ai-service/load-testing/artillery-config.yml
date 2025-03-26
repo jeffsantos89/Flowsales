@@ -1,0 +1,68 @@
+config:
+  target: "https://api.flowsale.com"
+  phases:
+    - duration: 30
+      arrivalRate: 5
+      name: "Warm up"
+    - duration: 60
+      arrivalRate: 50
+      name: "Initial load"
+    - duration: 120
+      arrivalRate: 100
+      rampTo: 500
+      name: "Ramp up"
+    - duration: 300
+      arrivalRate: 500
+      name: "Sustained load"
+    - duration: 60
+      arrivalRate: 500
+      rampTo: 50
+      name: "Ramp down"
+  plugins:
+    ensure: {}
+    metrics-by-endpoint: {}
+    expect: {}
+  http:
+    timeout: 10
+    maxSockets: 20
+    pool: 10
+  tls:
+    rejectUnauthorized: true
+  processor: "./custom-functions.js"
+  variables:
+    auth_token: "{{ $processEnvironment.AUTH_TOKEN }}"
+    baseEmail: "test_user_"
+    domain: "@example.com"
+scenarios:
+  - name: "Authentication Load Test"
+    weight: 1
+    beforeScenario: "generateRandomCredentials"
+    flow:
+      - log: "Starting authentication test"
+      - post:
+          url: "/auth/login"
+          json:
+            email: "{{ email }}"
+            password: "{{ password }}"
+          capture:
+            - json: "$.token"
+              as: "auth_token"
+          expect:
+            - statusCode: 200
+            - contentType: "application/json"
+          headers:
+            Content-Type: "application/json"
+            Accept: "application/json"
+  - name: "AI Prediction Load Test"
+    weight: 3
+    flow:
+      - think: 2
+      - get:
+          url: "/ai/predict"
+          headers:
+            Authorization: "Bearer {{ auth_token }}"
+            Accept: "application/json"
+          expect:
+            - statusCode: [200, 201]
+            - contentType: "application/json"
+      - log: "AI prediction request completed"

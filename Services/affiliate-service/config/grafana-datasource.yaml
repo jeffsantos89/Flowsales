@@ -1,0 +1,24 @@
+apiVersion: 1
+datasources:
+  - name: Zabbix
+    type: alexanderzobnin-zabbix-datasource
+    access: proxy
+    url: ${ZABBIX_URL:-http://zabbix-web:8080}  # URL configurável via env
+    basicAuth: true
+    basicAuthUser: ${ZABBIX_USER:-admin}  # Usuário via env
+    basicAuthPassword: ${ZABBIX_PASSWORD:-zabbix}  # Senha via env
+    jsonData:
+      tlsAuth: ${ZABBIX_TLS_AUTH:-false}  # TLS opcional
+      tlsSkipVerify: ${ZABBIX_TLS_SKIP_VERIFY:-true}  # Ignorar verificação TLS
+    secureJsonData:
+      password: ${ZABBIX_API_TOKEN}  # Token seguro via env
+    timeout: ${ZABBIX_TIMEOUT:-30s}  # Timeout configurável
+    withCredentials: true
+    isDefault: true # Fonte de dados padrão para novos painéis
+  - name: Prometheus    # Fonte de dados para Prometheus
+    type: prometheus
+    access: proxy
+    url: ${PROMETHEUS_URL:-http://prometheus:9090}  # URL configurável via env
+    basicAuth: false
+    withCredentials: false
+    isDefault: false

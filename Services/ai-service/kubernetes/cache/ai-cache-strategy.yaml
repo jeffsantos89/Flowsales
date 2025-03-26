@@ -1,0 +1,95 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ai-cache-refresher
+  labels:
+    app: ai-cache
+    component: refresher
+  annotations:
+    description: "Job responsible for refreshing AI model cache"
+spec:
+  schedule: "0 * * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      template:
+        metadata:
+          labels:
+            app: ai-cache
+            component: refresher
+        spec:
+          containers:
+            - name: ai-cache-updater
+              image: ai-cache-refresher:latest
+              imagePullPolicy: Always
+              command: ["python", "refresh_cache.py"]
+              env:
+                - name: TZ
+                  value: "UTC"
+                - name: LOG_LEVEL
+                  value: "INFO"
+                - name: SLACK_WEBHOOK_URL
+                  value: "https://hooks.slack.com/services/TOKEN"
+              resources:
+                requests:
+                  cpu: "500m"
+                  memory: "512Mi"
+                limits:
+                  cpu: "1000m"
+                  memory: "1Gi"
+              livenessProbe:
+                exec:
+                  command:
+                    - python
+                    - -c
+                    - "import os; exit(0) if os.path.exists('/tmp/healthy') else exit(1)"
+                initialDelaySeconds: 5
+                periodSeconds: 5
+              readinessProbe:
+                exec:
+                  command:
+                    - python
+                    - -c
+                    - "import os; exit(0) if os.path.exists('/tmp/ready') else exit(1)"
+                initialDelaySeconds: 5
+                periodSeconds: 5
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 1000
+                allowPrivilegeEscalation: false
+              volumeMounts:
+                - name: cache-storage
+                  mountPath: "/cache"
+          restartPolicy: OnFailure
+          terminationGracePeriodSeconds: 30
+          volumes:
+            - name: cache-storage
+              persistentVolumeClaim:
+                claimName: ai-cache-pvc
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: kubernetes.io/e2e-az-name
+                        operator: In
+                        values:
+                          - e2e-az1
+                          - e2e-az2
+            podAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - ai-cache
+              topologyKey: "kubernetes.io/hostname"
+          tolerations:
+            - key: "key1"
+              operator: "Equal"
+              value: "value1"
+              effect: "NoSchedule"

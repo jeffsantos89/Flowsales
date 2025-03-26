@@ -1,0 +1,41 @@
+# FastAPI framework and ASGI server
+fastapi==0.95.2
+uvicorn==0.22.0
+
+# Database and ORM
+sqlalchemy==2.0.0
+alembic==1.10.2
+psycopg2-binary==2.9.6
+psycopg2==2.9.6
+
+# Environment variables
+python-dotenv==0.21.0
+
+# Authentication
+python-jose==3.3.0
+
+# Utilities
+joblib==1.2.0
+loguru==0.6.0
+requests==2.31.0
+
+# Data processing and machine learning
+numpy==1.23.5
+pandas==1.5.3
+scikit-learn==1.2.2
+tensorflow==2.11.0
+torch==1.13.1
+
+# Kafka and Redis
+kafka-python==2.0.2
+redis==4.5.1
+
+# Quantum computing
+qiskit==0.39.0
+azure-quantum==0.26.2106.142
+
+# Pydantic for data validation
+pydantic==1.10.4
+
+# Production server
+gunicorn==20.1.0

@@ -1,0 +1,15 @@
+config:
+  target: "http://api.flowsale.com.br"
+  phases:
+    - duration: 60
+      arrivalRate: 100  # 100 RPS durante 60 segundos
+scenarios:
+  - flow:
+      - post:
+          url: "/api/send-email"
+          headers:
+            X-API-Key: "admin-secret-api-key"
+          json:
+to: "test@example.com"
+subject: "Test"
+html: "<h1>Test</h1>"

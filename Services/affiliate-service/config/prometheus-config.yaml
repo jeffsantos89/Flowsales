@@ -1,0 +1,69 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s  # Intervalo para avaliação de regras
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - 'alertmanager:9093'  # Endereço do Alertmanager, se estiver configurado
+
+rule_files:
+  - '/etc/prometheus/rules/*.yaml'  # Local das regras de alerta, se houver
+
+scrape_configs:
+  # Scrape para o Zabbix
+  - job_name: 'zabbix'
+    static_configs:
+      - targets: ['zabbix-server:10051']
+
+  # Scrape para serviços Kubernetes
+  - job_name: 'kubernetes'
+    kubernetes_sd_configs:
+      - role: pod
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        action: keep
+        regex: .*
+
+  # Scrape para o affiliate-service
+  - job_name: 'affiliate-service'
+    metrics_path: /metrics  # Endpoint exposto para métricas
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['affiliate-service.default.svc.cluster.local:4000']
+
+  # Scrape para o NGINX Ingress Controller
+  - job_name: 'nginx-ingress'
+    metrics_path: /metrics
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['nginx-ingress-controller:10254']
+
+  # Scrape para o Kafka
+  - job_name: 'kafka'
+    metrics_path: /metrics
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['kafka-exporter:9308']
+
+  # Scrape para o Redis
+  - job_name: 'redis'
+    metrics_path: /metrics
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['redis-exporter:9121']
+
+  # Scrape para o PostgreSQL
+  - job_name: 'postgresql'
+    metrics_path: /metrics
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  # Scrape para o Istio
+  - job_name: 'istio'
+    metrics_path: /metrics
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['istio-telemetry:15090']

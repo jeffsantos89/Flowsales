@@ -1,0 +1,110 @@
+{
+    "version": "2.0",
+    "metadata": {
+        "generatedAt": "2023-11-14T10:00:00Z",
+        "systemVersion": "1.5.0",
+        "requestId": "rec-123456789"
+    },
+    "recommendations": [
+        {
+            "id": "rec-001",
+            "type": "PRODUCT",
+            "priority": 1,
+            "confidence": 0.95,
+            "items": [
+                {
+                    "productId": "PRD-789456",
+                    "name": "Premium Wireless Headphones",
+                    "category": "Electronics",
+                    "price": {
+                        "amount": 199.99,
+                        "currency": "USD"
+                    },
+                    "score": {
+                        "relevance": 0.92,
+                        "popularity": 0.88,
+                        "seasonal": 0.75
+                    },
+                    "attributes": {
+                        "brand": "SoundMax",
+                        "color": "Black",
+                        "inStock": true,
+                        "tags": ["wireless", "noise-cancelling", "premium"]
+                    }
+                }
+            ],
+            "context": {
+                "userSegment": "premium_customer",
+                "location": "US",
+                "platform": "mobile",
+                "sessionType": "browsing"
+            }
+        },
+        {
+            "id": "rec-002",
+            "type": "CATEGORY",
+            "priority": 2,
+            "confidence": 0.88,
+            "categories": [
+                {
+                    "categoryId": "CAT-123",
+                    "name": "Smart Home",
+                    "relevanceScore": 0.85,
+                    "trending": true,
+                    "products": [
+                        "PRD-445566",
+                        "PRD-778899",
+                        "PRD-112233"
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "rec-003",
+            "type": "BUNDLE",
+            "priority": 3,
+            "confidence": 0.82,
+            "bundles": [
+                {
+                    "bundleId": "BND-001",
+                    "name": "Home Office Setup",
+                    "discount": 15,
+                    "products": [
+                        {
+                            "productId": "PRD-112233",
+                            "quantity": 1,
+                            "required": true
+                        },
+                        {
+                            "productId": "PRD-445566",
+                            "quantity": 2,
+                            "required": false
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "pagination": {
+        "currentPage": 1,
+        "totalPages": 5,
+        "itemsPerPage": 10,
+        "totalItems": 45
+    },
+    "settings": {
+        "algorithm": "collaborative_filtering_v2",
+        "filters": {
+            "minConfidence": 0.7,
+            "maxResults": 10,
+            "excludeViewed": true
+        },
+        "personalization": {
+            "enabled": true,
+            "factors": [
+                "browsing_history",
+                "purchase_history",
+                "similar_users"
+            ]
+        }
+    }
+}

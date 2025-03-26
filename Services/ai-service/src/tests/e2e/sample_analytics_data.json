@@ -1,0 +1,96 @@
+
+{
+    "analytics_metadata": {
+        "version": "2.0.0",
+        "generated_at": "2023-11-14T10:00:00Z",
+        "data_retention_days": 90
+    },
+    "user_metrics": {
+        "active_users": {
+            "daily": 15234,
+            "weekly": 89567,
+            "monthly": 342891,
+            "growth_rate": 0.23
+        },
+        "user_segments": [
+            {
+                "segment_id": "premium",
+                "count": 25463,
+                "revenue": 458923.45,
+                "churn_rate": 0.05
+            },
+            {
+                "segment_id": "basic",
+                "count": 89654,
+                "revenue": 178965.32,
+                "churn_rate": 0.08
+            }
+        ]
+    },
+    "performance_metrics": {
+        "response_times": {
+            "p50": 120,
+            "p90": 250,
+            "p99": 450
+        },
+        "error_rates": {
+            "4xx": 0.02,
+            "5xx": 0.001
+        },
+        "availability": 99.99
+    },
+    "business_metrics": {
+        "revenue": {
+            "total": 1234567.89,
+            "recurring": 987654.32,
+            "one_time": 246913.57,
+            "currency": "USD"
+        },
+        "conversions": {
+            "rate": 0.15,
+            "total": 12345,
+            "by_source": {
+                "organic": 5432,
+                "paid": 4321,
+                "referral": 2592
+            }
+        }
+    },
+    "system_health": {
+        "cpu_usage": {
+            "average": 45.5,
+            "peak": 82.3
+        },
+        "memory_usage": {
+            "average": 62.8,
+            "peak": 88.5
+        },
+        "storage": {
+            "total": 1024,
+            "used": 768,
+            "available": 256,
+            "unit": "GB"
+        }
+    },
+    "feature_usage": {
+        "most_used": [
+            {
+                "feature_id": "search",
+                "usage_count": 456789,
+                "success_rate": 0.98
+            },
+            {
+                "feature_id": "payment",
+                "usage_count": 123456,
+                "success_rate": 0.99
+            }
+        ],
+        "least_used": [
+            {
+                "feature_id": "export",
+                "usage_count": 1234,
+                "success_rate": 0.95
+            }
+        ]
+    }
+}

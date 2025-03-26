@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crm-integration
+  namespace: ai
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: crm-integration
+  template:
+    metadata:
+      labels:
+        app: crm-integration
+    spec:
+      containers:
+        - name: crm-integration
+          image: crm-integration:latest
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          env:
+            - name: CRM_API_URL
+              value: "https://api.crm.com"
+            - name: CRM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: crm-secret
+                  key: api-key
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          ports:
+            - containerPort: 8080
+      tolerations:
+        - key: "key"
+          operator: "Equal"
+          value: "value"
+          effect: "NoSchedule"
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/e2e-az-name
+                    operator: In
+                    values:
+                      - e2e-az1
+                      - e2e-az2

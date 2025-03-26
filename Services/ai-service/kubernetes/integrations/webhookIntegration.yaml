@@ -1,0 +1,97 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: webhook-config
+  namespace: ai
+data:
+  CRM_WEBHOOK_URL: https://crm.example.com/webhook
+  EMAIL_HOST: smtp.example.com
+  EMAIL_FROM: no-reply@example.com
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: email-secret
+  namespace: ai
+type: Opaque
+data:
+  EMAIL_USER: dXNlckBleGFtcGxlLmNvbQ==  # Base64 encoded value of 'user@example.com'
+  EMAIL_PASS: cGFzczEyMw==  # Base64 encoded value of 'pass123'
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webhook-integration
+  namespace: ai
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: webhook-integration
+  template:
+    metadata:
+      labels:
+        app: webhook-integration
+    spec:
+      containers:
+        - name: webhook-integration
+          image: webhook-service:latest
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "250m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          env:
+            - name: CRM_WEBHOOK_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: webhook-config
+                  key: CRM_WEBHOOK_URL
+            - name: EMAIL_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: webhook-config
+                  key: EMAIL_HOST
+            - name: EMAIL_FROM
+              valueFrom:
+                configMapKeyRef:
+                  name: webhook-config
+                  key: EMAIL_FROM
+            - name: EMAIL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: email-secret
+                  key: EMAIL_USER
+            - name: EMAIL_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: email-secret
+                  key: EMAIL_PASS
+            - name: CALLBACK_URL
+              value: "https://partner.webhook.com"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/webhook
+              subPath: webhook-config.yaml
+      volumes:
+        - name: config-volume
+          configMap:
+            name: webhook-config

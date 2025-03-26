@@ -1,0 +1,192 @@
+replicaCount: 3
+
+global:
+  environment: "production"
+  namespace: "ai-service"
+  logging:
+    level: "info"
+    format: "json"
+
+image:
+  repository: meu-usuario/ai-service
+  tag: "latest"
+  pullPolicy: "Always"
+  pullSecrets:
+    - name: "registry-secret"
+
+service:
+  type: "ClusterIP"
+  port: 5000
+  targetPort: 5000
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "5000"
+  labels:
+    app.kubernetes.io/component: "api"
+    app.kubernetes.io/part-of: "ai-platform"
+
+ingress:
+  enabled: "true"
+  annotations: 
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/rewrite-target: "/"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "3600"
+  hosts:
+    - host: "ai-service.meudominio.com"
+      paths:
+        - path: "/"
+          pathType: "Prefix"
+  tls:
+    - secretName: "ai-service-tls"
+      hosts:
+        - "ai-service.meudominio.com"
+
+resources:
+  limits:
+    cpu: "2000m"
+    memory: "2048Mi"
+  requests:
+    cpu: "500m"
+    memory: "1024Mi"
+
+autoscaling:
+  enabled: "true"
+  minReplicas: 3
+  maxReplicas: 30
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 75
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: "Percent"
+          value: 100
+          periodSeconds: 15
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: "Percent"
+          value: 100
+          periodSeconds: 15
+
+readinessProbe:
+  enabled: "true"
+  httpGet:
+    path: "/health/readiness"
+    port: "http"
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+livenessProbe:
+  enabled: "true"
+  httpGet:
+    path: "/health/liveness"
+    port: "http"
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+startupProbe:
+  enabled: "true"
+  httpGet:
+    path: "/health/startup"
+    port: "http"
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  failureThreshold: 30
+  successThreshold: 1
+
+podDisruptionBudget:
+  enabled: "true"
+  minAvailable: 2
+
+securityContext:
+  enabled: "true"
+  runAsUser: 1000
+  runAsGroup: 3000
+  fsGroup: 2000
+  runAsNonRoot: "true"
+  readOnlyRootFilesystem: "true"
+  capabilities:
+    drop:
+      - "ALL"
+
+networkPolicy:
+  enabled: "true"
+  ingressRules:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: "frontend"
+        - podSelector:
+            matchLabels:
+              app: "frontend"
+
+monitoring:
+  enabled: "true"
+  serviceMonitor:
+    enabled: "true"
+    interval: "15s"
+  grafanaDashboard:
+    enabled: "true"
+
+logging:
+  level: "info"
+  format: "json"
+  aggregator: "fluentd"
+  retention: "30d"
+
+backup:
+  enabled: "true"
+  schedule: "0 1 * * *"
+  retention: 7
+
+certificates:
+  enabled: "true"
+  issuer:
+    name: "letsencrypt-prod"
+    kind: "ClusterIssuer"
+
+integrations:
+  redis:
+    enabled: "true"
+    persistence: "true"
+  prometheus:
+    enabled: "true"
+  elasticSearch:
+    enabled: "true"
+
+tolerations:
+  - key: "ai-workload"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: "node-type"
+              operator: "In"
+              values:
+                - "ai-optimized"
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: "app.kubernetes.io/name"
+              operator: "In"
+              values:
+                - "ai-service"
+        topologyKey: "kubernetes.io/hostname"

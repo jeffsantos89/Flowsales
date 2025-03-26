@@ -1,0 +1,95 @@
+{
+    "logs": [
+        {
+            "id": "log_123e4567-e89b-12d3-a456-426614174000",
+            "timestamp": "2023-11-21T14:32:21.123Z",
+            "level": "INFO",
+            "environment": "production",
+            "service": {
+                "name": "ai-service",
+                "version": "1.2.0",
+                "instance": "ai-service-prod-01"
+            },
+            "request": {
+                "id": "req_987fcdeb-51d3-12d3-a456-426614174000",
+                "method": "POST",
+                "path": "/api/v1/analysis",
+                "source_ip": "192.168.1.100",
+                "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+                "headers": {
+                    "content-type": "application/json",
+                    "authorization": "[REDACTED]"
+                }
+            },
+            "context": {
+                "user_id": "usr_456789",
+                "organization_id": "org_123456",
+                "correlation_id": "corr_abc123def456",
+                "session_id": "sess_xyz789"
+            },
+            "message": "Successfully processed customer analysis request",
+            "data": {
+                "analysis_id": "ana_789012",
+                "processing_time_ms": 235,
+                "status": "completed"
+            },
+            "metrics": {
+                "memory_usage_mb": 256,
+                "cpu_usage_percent": 45,
+                "api_latency_ms": 120
+            },
+            "tags": [
+                "customer-analysis",
+                "api-v1",
+                "success"
+            ]
+        },
+        {
+            "id": "log_123e4567-e89b-12d3-a456-426614174001",
+            "timestamp": "2023-11-21T14:32:22.456Z",
+            "level": "ERROR",
+            "environment": "production",
+            "service": {
+                "name": "ai-service",
+                "version": "1.2.0",
+                "instance": "ai-service-prod-02"
+            },
+            "request": {
+                "id": "req_987fcdeb-51d3-12d3-a456-426614174001",
+                "method": "GET",
+                "path": "/api/v1/results/789012",
+                "source_ip": "192.168.1.101",
+                "user_agent": "PostmanRuntime/7.29.2"
+            },
+            "context": {
+                "user_id": "usr_456790",
+                "organization_id": "org_123456",
+                "correlation_id": "corr_abc123def457",
+                "session_id": "sess_xyz790"
+            },
+            "message": "Failed to retrieve analysis results",
+            "error": {
+                "code": "ERR_DATA_NOT_FOUND",
+                "message": "Analysis results not found in database",
+                "stack_trace": "[REDACTED]",
+                "severity": "high"
+            },
+            "metrics": {
+                "memory_usage_mb": 258,
+                "cpu_usage_percent": 48,
+                "api_latency_ms": 95
+            },
+            "tags": [
+                "error",
+                "data-retrieval",
+                "api-v1"
+            ]
+        }
+    ],
+    "metadata": {
+        "total_count": 2,
+        "format_version": "1.0",
+        "generated_at": "2023-11-21T14:32:23.000Z",
+        "retention_days": 90
+    }
+}

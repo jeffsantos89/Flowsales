@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: waf-policy
+data:
+  modsecurity.conf: |
+    # Enable ModSecurity
+    SecRuleEngine On
+
+    # Enable request and response body access
+    SecRequestBodyAccess On
+    SecResponseBodyAccess On
+
+    # Include additional configuration files
+    Include modsecurity.d/*.conf
+
+    # Basic SQL Injection protection
+    SecRule ARGS "@rx (union|select).*from" "id:1002,phase:2,deny,status:403,msg:'SQL Injection Detected'"
+
+    # Block known bad bots
+    SecRule REQUEST_HEADERS:User-Agent "@contains BadBot" "id:1003,phase:1,deny,status:403,msg:'Bad Bot Detected'"
+
+    # Block requests from known spam referrers
+    SecRule REQUEST_HEADERS:Referer "@contains spammer.com" "id:1004,phase:1,deny,status:403,msg:'Spammer Detected'"
+
+    # Additional security rules
+    SecRule REQUEST_URI "@rx /etc/passwd" "id:1005,phase:2,deny,status:403,msg:'Path Traversal Detected'"
+    SecRule ARGS "@rx \.\./" "id:1006,phase:2,deny,status:403,msg:'Directory Traversal Detected'"
+
+    # Rate limiting example
+    SecAction "id:1007,phase:1,initcol:ip=%{REMOTE_ADDR},pass"
+    SecRule IP:REQUESTS "@gt 100" "id:1008,phase:1,deny,status:429,msg:'Rate Limit Exceeded'"
+    SecAction "id:1009,phase:5,deprecatevar:ip.REQUESTS=1/1,pass"

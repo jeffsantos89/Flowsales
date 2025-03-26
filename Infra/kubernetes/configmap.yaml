@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flowsale-config
+data:
+  # Database configuration
+  DB_NAME: "flowsale"
+  
+  # Environment configuration
+  NODE_ENV: "production"
+  
+  # Add other configurations here (e.g., third-party URLs, API keys, etc.)
+  # THIRD_PARTY_URL: "https://example.com/api"
+  # API_KEY: "your-api-key"
+  CRM_API_URL: https://crm.example.com/api
+  KAFKA_BROKER: kafka:9092

@@ -1,0 +1,111 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: ai-service-project
+  namespace: argocd
+  labels:
+    environment: production
+    team: ai-service
+  annotations:
+    description: "AI Service Production Project"
+    owner: "ai-team@company.com"
+spec:
+  description: "Enterprise AI Service Project - Production Environment"
+
+  # 🔹 Repositórios permitidos para esta aplicação
+  sourceRepos:
+    - "https://github.com/seu-usuario/ai-service.git"
+    - "https://github.com/seu-usuario/ai-service-common.git"  # Common libraries/configs
+    - "https://github.com/seu-usuario/ai-service-infra.git"   # Infrastructure configs
+
+  # 🔹 Destinos onde este projeto pode implantar aplicações
+  destinations:
+    - namespace: ai-service-*
+      server: https://kubernetes.default.svc
+      name: in-cluster
+    - namespace: ai-service-*
+      server: https://dr-cluster.company.com  # Disaster recovery cluster
+      name: dr-cluster
+
+  # 🔐 Controle de acesso a recursos do cluster
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "Namespace"
+    - group: "apps"
+      kind: "*"
+    - group: "networking.k8s.io"
+      kind: "*"
+    - group: "autoscaling"
+      kind: "*"
+    - group: "monitoring.coreos.com"
+      kind: "*"
+    - group: "cert-manager.io"
+      kind: "*"
+
+  # 🚫 Recursos proibidos em namespaces específicos (segurança e controle)
+  namespaceResourceBlacklist:
+    - group: ""
+      kind: "ResourceQuota"
+    - group: ""
+      kind: "LimitRange"
+    - group: ""
+      kind: "NetworkPolicy"
+
+  # 🔹 Papéis e permissões dentro do ArgoCD
+  roles:
+    - name: admin
+      description: "Admin role with full access (except delete)"
+      policies:
+        - p, proj:ai-service-project:admin, applications, *, ai-service/*, allow
+        - p, proj:ai-service-project:admin, applications, delete, ai-service/*, deny
+        - p, proj:ai-service-project:admin, exec, create, ai-service/*, allow
+        - p, proj:ai-service-project:admin, logs, get, ai-service/*, allow
+      groups:
+        - ai-service-admins
+        - platform-admins
+
+    - name: developer
+      description: "Developer role with limited access"
+      policies:
+        - p, proj:ai-service-project:developer, applications, get, ai-service/*, allow
+        - p, proj:ai-service-project:developer, applications, sync, ai-service/*, allow
+        - p, proj:ai-service-project:developer, logs, get, ai-service/*, allow
+      groups:
+        - ai-service-developers
+
+    - name: readonly
+      description: "Read-only role for monitoring"
+      policies:
+        - p, proj:ai-service-project:readonly, applications, get, ai-service/*, allow
+      groups:
+        - ai-service-readers
+        - monitoring-team
+
+  # 🕒 Regras de sincronização automática de deployments
+  syncWindows:
+    - kind: allow
+      schedule: "Mon-Fri 09:00-17:00 America/Sao_Paulo"
+      duration: 8h
+      applications:
+        - "*-prod"
+      manualSync: true  # Permite sincronização manual nesses horários
+    - kind: deny
+      schedule: "Sat-Sun *"
+      duration: 48h
+      applications:
+        - "*-prod"
+      manualSync: false  # Bloqueia deploys automáticos no fim de semana
+
+  # 🚨 Alertas para recursos órfãos
+  orphanedResources:
+    warn: true
+    ignore:
+      - group: "batch"
+        kind: "Job"
+      - group: "apps"
+        kind: "ControllerRevision"
+    delete: false  # Não deletar automaticamente
+
+  # 🔒 Verificação de assinaturas GPG para commits aprovados
+  signatureKeys:
+    - keyID: "ABC123"  # GPG key for signed commits verification

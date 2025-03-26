@@ -1,0 +1,134 @@
+{
+    "users": {
+        "regular": [
+            {
+                "id": "usr_001",
+                "type": "regular",
+                "status": "active",
+                "personal": {
+                    "firstName": "John",
+                    "lastName": "Doe",
+                    "email": "john.doe@example.com",
+                    "phoneNumber": "+1234567890",
+                    "dateOfBirth": "1990-05-15",
+                    "documentId": "123.456.789-00"
+                },
+                "address": {
+                    "street": "123 Main Street",
+                    "city": "New York",
+                    "state": "NY",
+                    "country": "USA",
+                    "postalCode": "10001"
+                },
+                "security": {
+                    "passwordHash": "hashedPassword123",
+                    "lastLogin": "2023-10-15T14:30:00Z",
+                    "twoFactorEnabled": true,
+                    "loginAttempts": 0
+                },
+                "preferences": {
+                    "language": "en-US",
+                    "timezone": "America/New_York",
+                    "notifications": {
+                        "email": true,
+                        "sms": false,
+                        "push": true
+                    }
+                },
+                "metadata": {
+                    "createdAt": "2023-01-01T00:00:00Z",
+                    "updatedAt": "2023-10-15T14:30:00Z",
+                    "lastPasswordChange": "2023-09-01T00:00:00Z"
+                }
+            }
+        ],
+        "admin": [
+            {
+                "id": "adm_001",
+                "type": "admin",
+                "status": "active",
+                "personal": {
+                    "firstName": "Jane",
+                    "lastName": "Smith",
+                    "email": "jane.smith@example.com",
+                    "phoneNumber": "+1987654321",
+                    "dateOfBirth": "1985-03-20",
+                    "documentId": "987.654.321-00"
+                },
+                "address": {
+                    "street": "456 Admin Ave",
+                    "city": "San Francisco",
+                    "state": "CA",
+                    "country": "USA",
+                    "postalCode": "94105"
+                },
+                "security": {
+                    "passwordHash": "hashedPassword456",
+                    "lastLogin": "2023-10-15T15:45:00Z",
+                    "twoFactorEnabled": true,
+                    "loginAttempts": 0,
+                    "accessLevel": "full",
+                    "permissions": ["read", "write", "delete", "manage_users"]
+                },
+                "preferences": {
+                    "language": "en-US",
+                    "timezone": "America/Los_Angeles",
+                    "notifications": {
+                        "email": true,
+                        "sms": true,
+                        "push": true
+                    }
+                },
+                "metadata": {
+                    "createdAt": "2022-01-01T00:00:00Z",
+                    "updatedAt": "2023-10-15T15:45:00Z",
+                    "lastPasswordChange": "2023-08-15T00:00:00Z"
+                }
+            }
+        ],
+        "merchant": [
+            {
+                "id": "mer_001",
+                "type": "merchant",
+                "status": "active",
+                "personal": {
+                    "firstName": "Robert",
+                    "lastName": "Johnson",
+                    "email": "robert.johnson@example.com",
+                    "phoneNumber": "+1122334455",
+                    "documentId": "456.789.123-00"
+                },
+                "business": {
+                    "companyName": "Johnson Electronics",
+                    "taxId": "12.345.678/0001-90",
+                    "businessType": "electronics",
+                    "website": "www.johnsonelectronics.com"
+                },
+                "banking": {
+                    "bankName": "International Bank",
+                    "accountType": "business",
+                    "accountNumber": "****4321",
+                    "routingNumber": "****5678"
+                },
+                "security": {
+                    "passwordHash": "hashedPassword789",
+                    "lastLogin": "2023-10-15T16:00:00Z",
+                    "twoFactorEnabled": true,
+                    "loginAttempts": 0
+                },
+                "metadata": {
+                    "createdAt": "2023-02-01T00:00:00Z",
+                    "updatedAt": "2023-10-15T16:00:00Z",
+                    "verificationStatus": "verified",
+                    "lastPasswordChange": "2023-09-15T00:00:00Z"
+                }
+            }
+        ]
+    },
+    "metadata": {
+        "version": "1.0.0",
+        "lastUpdated": "2023-10-15T16:00:00Z",
+        "totalUsers": 3,
+        "environment": "production"
+    }
+}

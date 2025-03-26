@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  sales-service:
+    build: .
+    environment:
+      - PORT=4000
+      - DB_HOST=postgres
+      - DB_USER=postgres
+      - DB_PASS=postgres
+      - DB_NAME=flowsale_sales
+      - REDIS_URL=redis://redis:6379
+      - EMAIL_HOST=smtp.mailtrap.io
+      - EMAIL_PORT=587
+      - EMAIL_USER=my-user
+      - EMAIL_PASS=my-pass
+      - TWILIO_ACCOUNT_SID=my-twilio-sid
+      - TWILIO_AUTH_TOKEN=my-twilio-token
+      - TWILIO_PHONE_NUMBER=+1234567890
+      - STRIPE_API_KEY=my-stripe-key
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - '4000:4000'
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5432:5432'
+
+  redis:
+    image: redis:alpine
+    ports:
+      - '6379:6379'
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - '3000:3000'

@@ -1,0 +1,20 @@
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: ai-service-auth
+spec:
+  selector:
+    matchLabels:
+      app: ai-service
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/security/sa/api-gateway"]
+      to:
+        - operation:
+            methods: ["GET", "POST", "PUT"]
+            paths: ["/api/v1/*"]
+          rules:
+          - "!request.auth.claims[iss] != 'https://your-auth-server'"
+          - "!request.auth.claims[aud] != 'ai-service'"
+          action: ALLOW

@@ -1,0 +1,107 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: marketing-waf
+  annotations:
+    # Enhanced Security Settings
+    nginx.ingress.kubernetes.io/enable-modsecurity: "true"
+    nginx.ingress.kubernetes.io/enable-owasp-core-rules: "true"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "X-XSS-Protection: 1; mode=block";
+      more_set_headers "Referrer-Policy: strict-origin-when-cross-origin";
+      more_set_headers "Content-Security-Policy: default-src 'self'";
+    
+    # Advanced WAF Rules with Enhanced ModSecurity
+    nginx.ingress.kubernetes.io/modsecurity-snippet: |
+      SecRuleEngine On
+      SecRequestBodyAccess On
+      SecResponseBodyAccess On
+      
+      # Advanced Logging
+      SecAuditEngine RelevantOnly
+      SecAuditLogParts ABDEFHIJZ
+      SecAuditLog /var/log/modsec_audit.log
+      
+      # Improved Request Validation
+      SecRule REQUEST_HEADERS:Content-Type "!@rx ^(?:application/json|multipart/form-data|application/x-www-form-urlencoded)$" \
+        "id:1000,phase:1,deny,status:415,log,msg:'Invalid Content-Type'"
+
+      # Advanced IP-based Protection
+      SecRule &IP:BLOCK "@eq 1" \
+        "id:1001,phase:1,deny,status:403,msg:'IP address blocked'"
+      
+      # Sophisticated SQL Injection Protection
+      SecRule ARGS|ARGS_NAMES|REQUEST_COOKIES|REQUEST_COOKIES_NAMES|REQUEST_BODY|REQUEST_HEADERS \
+        "@rx (?i:(?:\b(?:select\b.+?(?:\b(?:from|into)\b)|insert\b.+?(?:\binto\b)|update\b.+?(?:\bset\b)|delete\b.+?(?:\bfrom\b)|drop\b|truncate\b|alter\b|exec\b|\bcall\b|\bsys\b)|(?:union\b.+?(?:\bselect\b)))" \
+        "id:1002,phase:2,deny,status:403,log,msg:'Advanced SQL Injection Attempt'"
+
+      # Enhanced XSS Protection
+      SecRule ARGS|REQUEST_HEADERS|REQUEST_COOKIES "@rx (?i:<[^>]*[\x00-\x20\"']{0,20}(?:on\w+|style|xmlns|formaction|form|xlink:href)[^>]*>)" \
+        "id:1003,phase:2,deny,status:403,log,msg:'Advanced XSS Attempt'"
+
+      # Zero-day Attack Prevention
+      SecRule REQUEST_HEADERS|REQUEST_LINE|ARGS|ARGS_NAMES "@rx (?:\b(?:phpinfo|system|exec|eval|shell_exec|passthru)\b)" \
+        "id:1004,phase:2,deny,status:403,log,msg:'Command Injection Attempt'"
+
+      # Advanced File Upload Protection
+      SecRule FILES_NAMES "@rx (?i:\.(?:php\d*|phtml|asp|aspx|exe|dll|bat|cmd|sh|cgi|pl|py|jar|jspx?|war|htaccess))$" \
+        "id:1005,phase:2,deny,status:403,log,msg:'Malicious File Upload Attempt'"
+
+      # DDoS Protection
+      SecRule &GLOBAL:IP_TRACK "@gt 1000" \
+        "id:1006,phase:1,deny,status:429,msg:'DDoS Protection Triggered'"
+
+      # Request Body Limits with Advanced Settings
+      SecRequestBodyLimit 15728640
+      SecRequestBodyNoFilesLimit 2097152
+      SecRequestBodyInMemoryLimit 13107200
+      SecRequestBodyLimitAction Reject
+      
+      # Response Body Scanning
+      SecResponseBodyLimit 10485760
+      SecResponseBodyMimeType "text/html|application/json|text/xml"
+
+    # Enhanced Rate Limiting
+    nginx.ingress.kubernetes.io/limit-rps: "30"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "3"
+    nginx.ingress.kubernetes.io/limit-connections: "100"
+    nginx.ingress.kubernetes.io/limit-rpm: "1800"
+    
+    # Advanced Backend Protection
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-next-upstream: "error timeout http_502 http_503 http_504"
+    nginx.ingress.kubernetes.io/proxy-next-upstream-tries: "3"
+    
+    # Enhanced CORS Configuration
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    nginx.ingress.kubernetes.io/cors-max-age: "600"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,X-LANG,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization,X-API-KEY"
+
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.flowsale.com
+      secretName: tls-secret
+  rules:
+    - host: api.flowsale.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: marketing-service
+                port:
+                  number: 80
+
+# ... (rest of the file remains the same)

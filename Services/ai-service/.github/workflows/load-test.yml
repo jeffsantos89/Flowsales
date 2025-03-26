@@ -1,0 +1,159 @@
+name: Production Load Testing Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      targetUrl:
+        description: 'Application URL to test'
+        required: true
+        default: 'http://ai-service:4000'
+      duration:
+        description: 'Test duration (seconds)'
+        required: false
+        default: '60'
+      vus:
+        description: 'Number of virtual users'
+        required: false
+        default: '50'
+      threshold:
+        description: 'Performance threshold (ms)'
+        required: false
+        default: '1000'
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+
+env:
+  K6_VERSION: '0.42.0'
+  NODE_VERSION: '16'
+
+jobs:
+  preflight-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate inputs
+        run: |
+          if [[ ! "${{ github.event.inputs.targetUrl }}" =~ ^http ]]; then
+            echo "❌ Invalid URL format!"
+            exit 1
+          fi
+
+  load-test:
+    needs: preflight-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install k6
+        run: |
+          curl -s https://packagecloud.io/install/repositories/loadimpact/k6/script.deb.sh | sudo bash
+          sudo apt-get install -y k6=${{ env.K6_VERSION }}
+
+      - name: Configure test environment
+        run: |
+          echo "TEST_START_TIME=$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_ENV
+          echo "TEST_ID=$(uuidgen)" >> $GITHUB_ENV
+
+      - name: Run K6 Load Test
+        id: k6-test
+        run: |
+          k6 run \
+            --tag environment=${{ github.event.inputs.environment }} \
+            --tag testId=${{ env.TEST_ID }} \
+            --duration ${{ github.event.inputs.duration }}s \
+            --vus ${{ github.event.inputs.vus }} \
+            --out json=./results.json \
+            --summary-trend-stats="avg,min,med,max,p(90),p(95)" \
+            ./load-testing/k6-script.js || true
+
+      - name: Validate JSON output
+        run: |
+          jq empty results.json || { echo "❌ Invalid JSON output from k6"; exit 1; }
+
+      - name: Process test results
+        id: process-results
+        run: |
+          echo "SUMMARY=$(cat results.json | jq -c '{
+            avg_response_time: .metrics.http_req_duration.avg,
+            p95_response_time: .metrics["http_req_duration{p(95)}"],
+            error_rate: .metrics.http_req_failed.rate
+          }')" >> $GITHUB_ENV
+
+      - name: Check performance thresholds
+        run: |
+          P95_TIME=$(echo $SUMMARY | jq '.p95_response_time')
+          if (( $(echo "$P95_TIME > ${{ github.event.inputs.threshold }}" | bc -l) )); then
+            echo "❌ Performance threshold exceeded: P95 = ${P95_TIME}ms"
+            exit 1
+          fi
+
+      - name: Generate Performance Report
+        run: |
+          echo "## Load Test Results - ${{ env.TEST_ID }}" > report.md
+          echo "- Environment: ${{ github.event.inputs.environment }}" >> report.md
+          echo "- Duration: ${{ github.event.inputs.duration }}s" >> report.md
+          echo "- Virtual Users: ${{ github.event.inputs.vus }}" >> report.md
+          echo "- Start Time: ${{ env.TEST_START_TIME }}" >> report.md
+          echo "### Metrics" >> report.md
+          echo "\`\`\`json" >> report.md
+          echo "${{ env.SUMMARY }}" >> report.md
+          echo "\`\`\`" >> report.md
+
+      - name: Store test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: k6-results-${{ env.TEST_ID }}
+          path: |
+            results.json
+            logs/*.log
+          retention-days: 30
+
+      - name: Convert JSON to HTML Report
+        run: |
+          cat results.json | jq '.' > summary.html
+
+      - name: Upload HTML Report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: summary-report-${{ env.TEST_ID }}
+          path: summary.html
+          retention-days: 30
+
+      - name: Notify Slack
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+          text: |
+            *Load Test Results*
+            Environment: ${{ github.event.inputs.environment }}
+            Status: ${{ job.status }}
+            Details: ${{ env.SUMMARY }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Update monitoring dashboard
+        if: success()
+        run: |
+          curl -X POST ${{ secrets.MONITORING_WEBHOOK }} \
+            -H "Content-Type: application/json" \
+            -d "${{ env.SUMMARY }}"

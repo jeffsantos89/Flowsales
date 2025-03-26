@@ -1,0 +1,64 @@
+kind: PrometheusRule
+metadata:
+  name: grafana-alerts
+  labels:
+    prometheus: k8s
+    role: alert-rules
+spec:
+  groups:
+    - name: marketing-alerts
+      rules:
+        - alert: HighCPUUsage
+          expr: sum(rate(container_cpu_usage_seconds_total[5m])) > 0.8
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "CPU Usage High"
+            description: "CPU usage is above 80% for more than 5 minutes."
+            runbook: "https://example.com/runbooks/high-cpu-usage"
+            dashboard: "https://grafana.example.com/d/abc123/cpu-usage"
+
+        - alert: HighMemoryUsage
+          expr: sum(container_memory_usage_bytes) > (0.8 * sum(machine_memory_bytes))
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Memory Usage High"
+            description: "Memory usage is above 80% for more than 5 minutes."
+            runbook: "https://example.com/runbooks/high-memory-usage"
+            dashboard: "https://grafana.example.com/d/def456/memory-usage"
+
+        - alert: HighLatency
+          expr: histogram_quantile(0.9, sum(rate(http_request_duration_ms_bucket[5m])) by (le)) > 500
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "High Latency Detected"
+            description: "API latency is above 500ms for 90th percentile."
+            runbook: "https://example.com/runbooks/high-latency"
+            dashboard: "https://grafana.example.com/d/ghi789/latency"
+
+        - alert: PodCrashLooping
+          expr: rate(kube_pod_container_status_restarts_total[5m]) > 0.5
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Pod CrashLooping Detected"
+            description: "Pod is restarting more than 0.5 times per minute over the last 10 minutes."
+            runbook: "https://example.com/runbooks/pod-crashlooping"
+            dashboard: "https://grafana.example.com/d/jkl012/pod-status"
+
+        - alert: DiskSpaceLow
+          expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.2
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Disk Space Low"
+            description: "Disk space is below 20% on the root filesystem."
+            runbook: "https://example.com/runbooks/disk-space-low"
+            dashboard: "https://grafana.example.com/d/mno345/disk-usage"

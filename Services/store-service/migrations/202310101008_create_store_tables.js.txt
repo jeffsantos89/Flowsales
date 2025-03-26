@@ -1,0 +1,44 @@
+exports.up = async function(knex) {
+  // Tabela de produtos
+  await knex.schema.createTable('products', table => {
+    table.increments('id').primary();
+    table.string('name').notNullable();
+    table.decimal('price', 10, 2).notNullable(); // Ex: 99999999.99
+    table.integer('stock').defaultTo(0);
+    table.timestamps(true, true);
+  });
+
+  // Tabela de carrinho (cart_items)
+  await knex.schema.createTable('cart_items', table => {
+    table.increments('id').primary();
+    table.integer('product_id').unsigned().references('id').inTable('products');
+    table.integer('quantity').notNullable();
+    table.string('session_id').notNullable(); // Sessão do usuário ou token
+    table.timestamps(true, true);
+  });
+
+  // Tabela de pedidos
+  await knex.schema.createTable('orders', table => {
+    table.increments('id').primary();
+    table.string('order_number').notNullable().unique();
+    table.decimal('total', 10, 2).notNullable();
+    table.string('status').defaultTo('pending'); // pending, paid, shipped, etc.
+    table.timestamps(true, true);
+  });
+
+  // Tabela order_items (itens do pedido)
+  await knex.schema.createTable('order_items', table => {
+    table.increments('id').primary();
+    table.integer('order_id').unsigned().references('id').inTable('orders');
+    table.integer('product_id').unsigned().references('id').inTable('products');
+    table.integer('quantity').notNullable();
+    table.decimal('price', 10, 2).notNullable();
+  });
+};
+
+exports.down = async function(knex) {
+  await knex.schema.dropTableIfExists('order_items');
+  await knex.schema.dropTableIfExists('orders');
+  await knex.schema.dropTableIfExists('cart_items');
+  await knex.schema.dropTableIfExists('products');
+};

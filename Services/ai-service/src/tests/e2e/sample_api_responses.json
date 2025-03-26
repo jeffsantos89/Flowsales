@@ -1,0 +1,113 @@
+{
+    "success_responses": {
+        "get_user": {
+            "status": 200,
+            "data": {
+                "id": "usr_123456789",
+                "name": "John Doe",
+                "email": "john.doe@example.com",
+                "role": "admin",
+                "created_at": "2023-10-20T14:30:00Z",
+                "last_login": "2023-10-20T15:45:00Z",
+                "metadata": {
+                    "preferences": {
+                        "language": "en",
+                        "timezone": "UTC-3"
+                    }
+                }
+            }
+        },
+        "list_products": {
+            "status": 200,
+            "data": {
+                "items": [
+                    {
+                        "id": "prod_001",
+                        "name": "Premium Package",
+                        "price": 99.99,
+                        "currency": "USD",
+                        "status": "active",
+                        "inventory": 150
+                    }
+                ],
+                "pagination": {
+                    "total": 100,
+                    "page": 1,
+                    "per_page": 20,
+                    "total_pages": 5
+                }
+            }
+        },
+        "create_order": {
+            "status": 201,
+            "data": {
+                "order_id": "ord_987654321",
+                "timestamp": "2023-10-20T16:00:00Z",
+                "status": "confirmed"
+            }
+        }
+    },
+    "error_responses": {
+        "validation_error": {
+            "status": 400,
+            "error": {
+                "code": "VALIDATION_ERROR",
+                "message": "Invalid input parameters",
+                "details": [
+                    {
+                        "field": "email",
+                        "message": "Invalid email format"
+                    }
+                ],
+                "request_id": "req_abc123"
+            }
+        },
+        "unauthorized": {
+            "status": 401,
+            "error": {
+                "code": "UNAUTHORIZED",
+                "message": "Authentication required",
+                "request_id": "req_def456"
+            }
+        },
+        "forbidden": {
+            "status": 403,
+            "error": {
+                "code": "FORBIDDEN",
+                "message": "Insufficient permissions",
+                "request_id": "req_ghi789"
+            }
+        },
+        "not_found": {
+            "status": 404,
+            "error": {
+                "code": "RESOURCE_NOT_FOUND",
+                "message": "The requested resource was not found",
+                "request_id": "req_jkl012"
+            }
+        },
+        "rate_limit": {
+            "status": 429,
+            "error": {
+                "code": "RATE_LIMIT_EXCEEDED",
+                "message": "Too many requests",
+                "retry_after": 60,
+                "request_id": "req_mno345"
+            }
+        },
+        "server_error": {
+            "status": 500,
+            "error": {
+                "code": "INTERNAL_SERVER_ERROR",
+                "message": "An unexpected error occurred",
+                "request_id": "req_pqr678"
+            }
+        }
+    },
+    "meta": {
+        "api_version": "v1.0.0",
+        "environment": "production",
+        "documentation_url": "https://api.example.com/docs",
+        "support_email": "api-support@example.com"
+    }
+}

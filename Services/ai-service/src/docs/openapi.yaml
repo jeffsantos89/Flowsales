@@ -1,0 +1,163 @@
+openapi: 3.1.0
+info:
+  title: AI Service API
+  description: |
+    API Rest para serviços de IA, análise preditiva de dados e integração com marketplaces.
+    Para suporte, contate: support@aiservice.com
+  version: 1.0.0
+  contact:
+    name: AI Service Team
+    email: api@aiservice.com
+    url: https://docs.aiservice.com
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: https://api.aiservice.com/v1
+    description: Servidor de Produção
+  - url: https://staging.aiservice.com/v1
+    description: Servidor de Staging
+  - url: http://localhost:8000/v1
+    description: Servidor Local
+
+security:
+  - bearerAuth: []
+  - apiKeyAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        code: 
+          type: integer
+        message:
+          type: string
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          minLength: 8
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+    PredictionRequest:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: object
+          description: Dados para previsão
+    PredictionResponse:
+      type: object
+      properties:
+        prediction:
+          type: object
+        confidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        timestamp:
+          type: string
+          format: date-time
+
+paths:
+  /auth/login:
+    post:
+      tags:
+        - Autenticação
+      summary: Autenticação do usuário
+      description: Autentica um usuário e retorna um token JWT
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login realizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Credenciais inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /predict:
+    post:
+      tags:
+        - IA
+      summary: Geração de previsão
+      description: Processa dados através do modelo de IA e retorna previsões
+      operationId: generatePrediction
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PredictionRequest'
+      responses:
+        '200':
+          description: Previsão gerada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PredictionResponse'
+        '400':
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Não autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Muitas requisições
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

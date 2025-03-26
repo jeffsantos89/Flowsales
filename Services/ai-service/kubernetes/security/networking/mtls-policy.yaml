@@ -1,0 +1,27 @@
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: ai-service
+  labels:
+    app.kubernetes.io/name: mtls-policy
+    app.kubernetes.io/component: security
+  annotations:
+    description: "Production-grade mTLS policy for ai-service"
+spec:
+  mtls:
+    mode: STRICT
+  selector:
+    matchLabels:
+      app: ai-service
+  portLevelMtls:
+    # Allow specific ports to have different mTLS modes if needed
+    "8080":
+      mode: STRICT
+    "9090":
+      mode: STRICT
+  # Define a more granular JWT validation policy
+  jwtRules:
+  - issuer: "https://your-identity-provider"
+    jwksUri: "https://your-identity-provider/.well-known/jwks.json"
+    forwardOriginalToken: true

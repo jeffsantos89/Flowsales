@@ -1,0 +1,82 @@
+config:
+  target: "http://your-api-endpoint.com"
+  phases:
+    - duration: 60
+      arrivalRate: 10
+      name: Warm-up
+    - duration: 300
+      arrivalRate: 50
+      name: Sustained Load
+    - duration: 120
+      arrivalRate: 100
+      name: Spike Load
+  defaults:
+    headers:
+      Content-Type: "application/json"
+    http:
+      pool: 100
+      timeout: 120000
+      keepalive: true
+
+scenarios:
+  - name: Health Check
+    flow:
+      - get:
+          url: "/health"
+          capture:
+            - json: "$.status"
+              as: "status"
+          validate:
+            - statusCode:
+                equals: 200
+            - assert:
+                that: "status"
+                equals: "ok"
+
+  - name: Create User
+    flow:
+      - post:
+          url: "/users"
+          json:
+            name: "{{ randomName() }}"
+            email: "{{ randomEmail() }}"
+            password: "password123"
+          capture:
+            - json: "$.id"
+              as: "userId"
+          validate:
+            - statusCode:
+                equals: 201
+
+  - name: Get User
+    flow:
+      - get:
+          url: "/users/{{ userId }}"
+          validate:
+            - statusCode:
+                equals: 200
+
+  - name: Update User
+    flow:
+      - put:
+          url: "/users/{{ userId }}"
+          json:
+            name: "{{ randomName() }}"
+            email: "{{ randomEmail() }}"
+          validate:
+            - statusCode:
+                equals: 200
+
+  - name: Delete User
+    flow:
+      - delete:
+          url: "/users/{{ userId }}"
+          validate:
+            - statusCode:
+                equals: 204
+
+functions:
+  randomName:
+    - function: "faker.name.findName"
+  randomEmail:
+    - function: "faker.internet.email"

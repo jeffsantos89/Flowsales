@@ -1,0 +1,79 @@
+apiVersion: argoproj.io/v1alpha1
+kind: SyncPolicy
+metadata:
+  name: ai-service-sync
+  namespace: argocd
+  labels:
+    env: production
+    app: ai-service
+  annotations:
+    description: "Production sync policy for AI Service"
+spec:
+  automated:
+    prune: true  # Enable automated pruning with safety measures
+    selfHeal: true
+    allowEmpty: false
+
+  syncOptions:
+    - CreateNamespace=true
+    - PrunePropagationPolicy=foreground
+    - ApplyOutOfSyncOnly=true
+    - Validate=true
+    - RespectIgnoreDifferences=true
+    - ServerSideApply=true  # Use server-side apply for better conflict handling
+
+  retry:
+    limit: 10
+    backoff:
+      duration: "30s"
+      factor: 2
+      maxDuration: "10m"
+
+  syncWindow:
+    - kind: allow
+      schedule: "* * * * *"  # Allow sync always for production
+      duration: "24h"
+      applications:
+        - "*"
+      clusters:
+        - "in-cluster"
+    - kind: deny
+      schedule: "0 0 * * *"  # Maintenance window
+      duration: "1h"
+      applications:
+        - "*"
+
+  hooks:
+    - type: PreSync
+      command: ["./health-check.sh"]
+    - type: Sync
+      command: ["./backup.sh"]
+    - type: PostSync
+      command: ["curl", "-X", "POST", "-H", "Content-Type: application/json", 
+                "--data", '{"text":"🔄 AI-SERVICE Deploy Status: $ARGOCD_SYNC_STATUS\nEnvironment: Production\nTimestamp: $DATETIME"}', 
+                "$SLACK_WEBHOOK_URL"]
+    - type: SyncFail
+      command: ["./incident-response.sh"]
+
+  ignoreDifferences:
+    - group: networking.k8s.io
+      kind: Ingress
+      jsonPointers:
+        - /metadata/annotations
+        - /status
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /metadata/annotations
+        - /spec/replicas
+
+  resources:
+    - group: ""
+      kind: Service
+      syncOptions:
+        - Validate=true
+    - group: "apps"
+      kind: Deployment
+      syncOptions:
+        - Validate=true
+        - CreateNamespace=true

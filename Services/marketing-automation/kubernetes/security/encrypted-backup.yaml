@@ -1,0 +1,69 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: encrypted-backup
+spec:
+  schedule: "0 2 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: backup
+              image: postgres:15-alpine
+              command: ["/bin/sh", "-c"]
+              args: ["pg_dump -U $POSTGRES_USER -F c $POSTGRES_DB > /backups/flowsale.sql && openssl enc -aes-256-cbc -salt -in /backups/flowsale.sql -out /backups/flowsale_encrypted.sql -k $ENCRYPTION_KEY"]
+              env:
+                - name: POSTGRES_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-secret
+                      key: username
+                - name: POSTGRES_DB
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-secret
+                      key: database
+                - name: ENCRYPTION_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: encryption-secret
+                      key: key
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backups
+              resources:
+                requests:
+                  memory: "256Mi"
+                  cpu: "500m"
+                limits:
+                  memory: "512Mi"
+                  cpu: "1"
+          restartPolicy: OnFailure
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: backup-pvc
+          tolerations:
+            - key: "node-role.kubernetes.io/master"
+              effect: "NoSchedule"
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: kubernetes.io/e2e-az-name
+                        operator: In
+                        values:
+                          - e2e-az1
+                          - e2e-az2
+          nodeSelector:
+            disktype: ssd
+          initContainers:
+            - name: init-backup
+              image: busybox
+              command: ["sh", "-c", "mkdir -p /backups"]
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backups
+          terminationGracePeriodSeconds: 30

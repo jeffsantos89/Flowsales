@@ -1,0 +1,56 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+  annotations:
+    backup-type: "database"
+    schedule: "daily"
+spec:
+  schedule: "0 2 * * *"  # Executa todos os dias às 2h da manhã
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: backup
+              image: postgres:15-alpine
+              env:
+                - name: POSTGRES_HOST
+                  value: postgres-db
+                - name: POSTGRES_USER
+                  value: postgres
+                - name: POSTGRES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: db-credentials
+                      key: password
+              args:
+                - /bin/sh
+                - -c
+                - pg_dump -h $POSTGRES_HOST -U $POSTGRES_USER -F c flowsale > /backup/flowsale_$(date +\%F).sql
+              resources:
+                requests:
+                  memory: "256Mi"
+                  cpu: "500m"
+                limits:
+                  memory: "512Mi"
+                  cpu: "1"
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backup
+            - name: upload
+              image: alpine
+              args:
+                - /bin/sh
+                - -c
+                - tar -czf /backup/flowsale_$(date +\%F).tar.gz /backup/flowsale_$(date +\%F).sql && 
+                  aws s3 cp /backup/flowsale_$(date +\%F).tar.gz s3://your-bucket-name/
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backup
+          restartPolicy: OnFailure
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: backup-pvc
+          ttlSecondsAfterFinished: 86400  # Retém o job por 1 dia após a conclusão

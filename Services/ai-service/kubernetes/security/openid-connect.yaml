@@ -1,0 +1,46 @@
+provider: keycloak
+client_id: ai-service-client
+client_secret: ${OIDC_CLIENT_SECRET}
+
+# Multiple redirect URIs for different environments
+redirect_uris:
+  - "https://ai.flowsale.com/auth/callback"
+  - "https://staging.ai.flowsale.com/auth/callback"
+  - "https://dev.ai.flowsale.com/auth/callback"
+
+# Extended scope list
+allowed_scopes:
+  - openid
+  - profile
+  - email
+  - offline_access
+  - roles
+
+# Security configurations
+security_config:
+  token_timeout: 3600
+  refresh_token_timeout: 86400
+  pkce_enabled: true
+  enforce_https: true
+  session_idle_timeout: 1800
+
+# Rate limiting
+rate_limit:
+  max_attempts: 5
+  window_size: 300
+
+# Additional settings
+settings:
+  response_types:
+    - code
+    - id_token
+  response_mode: form_post
+  ssl_verify: true
+  prompt: consent
+  acr_values: "urn:mace:incommon:iap:silver"
+
+# Logging and monitoring
+monitoring:
+  audit_logging: true
+  error_reporting: true
+  metrics_enabled: true

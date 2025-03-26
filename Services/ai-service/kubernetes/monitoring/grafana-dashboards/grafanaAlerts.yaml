@@ -1,0 +1,134 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: grafana-alerts
+  namespace: monitoring
+  labels:
+    prometheus: k8s
+    role: alert-rules
+    team: platform
+    environment: production
+spec:
+  groups:
+    - name: marketing-alerts
+      rules:
+        - alert: CriticalCPUUsage
+          expr: |
+            (
+              sum by(namespace, pod, container) (
+                rate(container_cpu_usage_seconds_total{container!=""}[5m])
+              ) / sum by(namespace, pod, container) (
+                container_spec_cpu_quota{container!=""} / 100000
+              ) * 100
+            ) > 85 or (
+              sum by(namespace, pod, container) (
+                rate(container_cpu_usage_seconds_total{container!=""}[15m])
+              ) / sum by(namespace, pod, container) (
+                container_spec_cpu_quota{container!=""} / 100000
+              ) * 100
+            ) > 75
+          for: 10m
+          labels:
+            severity: critical
+            team: platform
+            category: resource
+            alert_type: cpu
+          annotations:
+            summary: "Critical CPU Usage in {{ $labels.namespace }}/{{ $labels.pod }}/{{ $labels.container }}"
+            description: "Pod {{ $labels.pod }} (container: {{ $labels.container }}) CPU usage is {{ $value | humanize }}% for more than 10 minutes"
+            runbook_url: "https://example.com/runbooks/high-cpu-usage"
+            dashboard_url: "https://grafana.example.com/d/abc123/cpu-usage"
+
+        - alert: MemoryUsageThresholdCritical
+          expr: |
+            (
+              sum by(namespace, pod, container) (
+                container_memory_working_set_bytes{container!=""}
+              ) / sum by(namespace, pod, container) (
+                container_spec_memory_limit_bytes{container!=""}
+              ) * 100 > 90
+            ) and (
+              sum by(namespace, pod, container) (
+                container_memory_working_set_bytes{container!=""}
+              ) > 100 * 1024 * 1024
+            )
+          for: 5m
+          labels:
+            severity: critical
+            team: platform
+            category: resource
+            alert_type: memory
+          annotations:
+            summary: "Memory usage critical in {{ $labels.namespace }}/{{ $labels.pod }}"
+            description: "Pod {{ $labels.pod }} memory usage at {{ $value | humanize }}% of limit ({{ $value | humanizeBytes }})"
+            runbook_url: "https://example.com/runbooks/high-memory-usage"
+
+        - alert: HighLatencyP95
+          expr: |
+            (
+              histogram_quantile(0.95, 
+                sum by(le, service, endpoint) (
+                  rate(http_request_duration_seconds_bucket{job="api"}[5m])
+                )
+              ) * 1000 > 500
+            ) and (
+              sum by(service) (rate(http_request_duration_seconds_count{job="api"}[5m])) > 1
+            )
+          for: 5m
+          labels:
+            severity: critical
+            team: platform
+            category: performance
+          annotations:
+            summary: "P95 Latency > 500ms for {{ $labels.service }}/{{ $labels.endpoint }}"
+            description: "95th percentile latency is {{ $value | humanize }}ms over 5m"
+            dashboard_url: "https://grafana.example.com/d/latency"
+
+    - name: ai-service-alerts
+      rules:
+        - alert: AIServiceHealthCheck
+          expr: |
+            up{job="ai-service"} == 0 or (
+              sum by(instance) (ai_service_health_status) < 1
+            )
+          for: 2m
+          labels:
+            severity: critical
+            team: ai
+            category: availability
+          annotations:
+            summary: "AI Service Health Check Failed"
+            description: "AI Service instance {{ $labels.instance }} is not healthy"
+            runbook_url: "https://example.com/runbooks/ai-service-troubleshooting"
+
+        - alert: AIServiceHighErrorRate
+          expr: |
+            sum by(endpoint) (
+              rate(ai_service_requests_total{status="error"}[5m])
+            ) / sum by(endpoint) (
+              rate(ai_service_requests_total[5m])
+            ) * 100 > 5
+          for: 5m
+          labels:
+            severity: critical
+            team: ai
+            category: reliability
+          annotations:
+            summary: "High error rate on AI Service"
+            description: "Error rate for endpoint {{ $labels.endpoint }} is {{ $value | humanize }}%"
+
+        - alert: AIServiceResponseTime
+          expr: |
+            histogram_quantile(0.95, 
+              sum by(le, endpoint) (
+                rate(ai_service_response_time_seconds_bucket[5m])
+              )
+            ) > 2
+          for: 5m
+          labels:
+            severity: warning
+            team: ai
+            category: performance
+          annotations:
+            summary: "Slow AI Service Response Time"
+            description: "P95 response time for endpoint {{ $labels.endpoint }} is {{ $value | humanize }}s"

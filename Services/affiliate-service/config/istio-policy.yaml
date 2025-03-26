@@ -1,0 +1,14 @@
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: affiliate-service-mtls-policy  # Nome específico para o serviço
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: affiliate-service  # Aplica a mTLS apenas para este serviço
+  mtls:
+    mode: STRICT  # Exige comunicação via mTLS
+  portLevelMtls:
+    4000:
+      mode: STRICT  # Força mTLS para a porta 4000

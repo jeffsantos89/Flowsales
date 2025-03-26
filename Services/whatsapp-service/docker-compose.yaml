@@ -1,0 +1,37 @@
+services:
+  whatsapp-service:
+    build:
+      context: .
+    environment:
+      - PORT=3000
+      - WHATSAPP_API_URL=${WHATSAPP_API_URL}
+      - WHATSAPP_API_TOKEN=${WHATSAPP_API_TOKEN}
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+    ports:
+      - '3000:3000'
+    networks:
+      - backend
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - backend
+
+  redis:
+    image: redis:alpine
+    networks:
+      - backend
+
+volumes:
+  pgdata:
+
+networks:
+  backend:
+    driver: bridge
+    

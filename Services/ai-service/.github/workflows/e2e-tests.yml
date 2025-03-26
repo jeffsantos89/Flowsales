@@ -1,0 +1,188 @@
+name: E2E Testing Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to run tests against'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  POSTGRES_VERSION: '15'
+  NODE_VERSION: '18'
+  PYTHON_VERSION: '3.10'
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'postgres' }}
+  POSTGRES_DB: ai_service_db
+
+jobs:
+  pre-check:
+    name: Pre-flight Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify Secret Availability
+        run: |
+          if [ -z "${{ secrets.POSTGRES_PASSWORD }}" ]; then
+            echo "❌ Required secrets are not set!"
+            exit 1
+          fi
+
+  e2e-tests:
+    name: E2E Test Suite
+    needs: pre-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ${{ env.POSTGRES_USER }}"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 20s
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          npm ci
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verify Database Connection
+        run: |
+          for i in {1..10}; do
+            pg_isready -h localhost -U ${{ env.POSTGRES_USER }} && break
+            echo "Waiting for PostgreSQL..."
+            sleep 3
+          done
+
+      - name: Start Test Environment
+        run: |
+          docker-compose -f docker-compose.yml up -d
+          ./scripts/wait-for-services.sh
+        env:
+          COMPOSE_DOCKER_CLI_BUILD: 1
+          DOCKER_BUILDKIT: 1
+
+      - name: Run Database Migrations
+        run: python manage.py migrate
+
+      - name: Run API Integration Tests
+        run: |
+          pytest tests/integration \
+            --junitxml=reports/python-test-report.xml \
+            --cov=. \
+            --cov-report=xml:coverage/coverage.xml \
+            -n auto
+        env:
+          TEST_DATABASE_URL: postgresql://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:5432/${{ env.POSTGRES_DB }}
+
+      - name: Run E2E Tests
+        run: npm run test:e2e
+        env:
+          NODE_ENV: test
+          CI: true
+
+      - name: Security Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs,config,image'
+          image-ref: 'ghcr.io/${{ github.repository }}:latest'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          exit-code: 1
+          format: 'table'
+          output: 'trivy-results.txt'
+
+      - name: Upload Test Reports
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-reports
+          path: |
+            reports/
+            coverage/
+            trivy-results.txt
+
+      - name: Process Test Results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: "reports/**/*.xml"
+
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage/coverage.xml
+          fail_ci_if_error: true
+
+      - name: Collect Failure Logs
+        if: failure()
+        run: |
+          mkdir -p logs
+          docker ps -a
+          docker-compose logs --no-color > logs/docker-compose.log
+          for container in $(docker ps -aq); do
+            docker logs $container > logs/container-$container.log 2>&1
+          done
+          tar -czf logs.tar.gz logs/
+
+      - name: Upload Failure Logs
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: failure-logs
+          path: logs.tar.gz
+          retention-days: 7
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker-compose down -v
+          docker system prune -f
+          rm -rf logs/
+
+      - name: Notify Status
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

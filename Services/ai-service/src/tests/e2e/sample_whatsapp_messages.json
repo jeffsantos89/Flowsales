@@ -1,0 +1,131 @@
+{
+    "version": "1.0",
+    "messageTemplates": [
+        {
+            "id": "text_message_01",
+            "type": "text",
+            "from": "5511999999999",
+            "to": "5511888888888",
+            "timestamp": "2024-01-10T14:30:00.000Z",
+            "content": {
+                "text": "Hello! Welcome to our service.",
+                "quotedMessageId": null,
+                "metadata": {
+                    "priority": "normal",
+                    "category": "welcome"
+                }
+            },
+            "status": "delivered"
+        },
+        {
+            "id": "media_message_01",
+            "type": "media",
+            "from": "5511999999999",
+            "to": "5511888888888",
+            "timestamp": "2024-01-10T14:31:00.000Z",
+            "content": {
+                "mediaType": "image",
+                "mediaUrl": "https://example.com/images/product.jpg",
+                "caption": "Check out our new product!",
+                "mimeType": "image/jpeg",
+                "metadata": {
+                    "size": 1024567,
+                    "filename": "product_image.jpg"
+                }
+            },
+            "status": "sent"
+        },
+        {
+            "id": "interactive_message_01",
+            "type": "interactive",
+            "from": "5511999999999",
+            "to": "5511888888888",
+            "timestamp": "2024-01-10T14:32:00.000Z",
+            "content": {
+                "interactiveType": "button",
+                "header": {
+                    "type": "text",
+                    "text": "Special Offer!"
+                },
+                "body": {
+                    "text": "Would you like to know more about our promotion?"
+                },
+                "footer": {
+                    "text": "Valid until tomorrow"
+                },
+                "buttons": [
+                    {
+                        "id": "btn_yes",
+                        "text": "Yes, please!",
+                        "type": "reply"
+                    },
+                    {
+                        "id": "btn_no",
+                        "text": "No, thanks",
+                        "type": "reply"
+                    }
+                ]
+            },
+            "status": "delivered"
+        },
+        {
+            "id": "location_message_01",
+            "type": "location",
+            "from": "5511999999999",
+            "to": "5511888888888",
+            "timestamp": "2024-01-10T14:33:00.000Z",
+            "content": {
+                "latitude": -23.550520,
+                "longitude": -46.633308,
+                "name": "Company Headquarters",
+                "address": "Av. Paulista, 1000 - São Paulo, SP"
+            },
+            "status": "read"
+        },
+        {
+            "id": "template_message_01",
+            "type": "template",
+            "from": "5511999999999",
+            "to": "5511888888888",
+            "timestamp": "2024-01-10T14:34:00.000Z",
+            "content": {
+                "templateName": "order_confirmation",
+                "languageCode": "pt_BR",
+                "components": [
+                    {
+                        "type": "header",
+                        "parameters": [
+                            {
+                                "type": "text",
+                                "text": "Order #123456"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "body",
+                        "parameters": [
+                            {
+                                "type": "text",
+                                "text": "John Doe"
+                            },
+                            {
+                                "type": "currency",
+                                "currency": {
+                                    "currencyCode": "BRL",
+                                    "amount": 159.90
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            "status": "sent"
+        }
+    ],
+    "metadata": {
+        "totalCount": 5,
+        "environment": "production",
+        "version": "2.0.0",
+        "generatedAt": "2024-01-10T14:35:00.000Z"
+    }
+}

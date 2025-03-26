@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: nginx-config
+data:
+    nginx.conf: |
+        user nginx;
+        worker_processes auto;
+        events {
+                worker_connections 1024;
+        }
+        http {
+                upstream backend {
+                        server marketing-service-1:3000 weight=5;
+                        server marketing-service-2:3000 weight=5;
+                }
+                server {
+                        listen 80;
+                        location / {
+                                proxy_pass http://backend;
+                                proxy_http_version 1.1;
+                                proxy_set_header Upgrade $http_upgrade;
+                                proxy_set_header Connection 'upgrade';
+                                proxy_set_header Host $host;
+                                proxy_set_header X-Real-IP $remote_addr;
+                                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                                proxy_set_header X-Forwarded-Proto $scheme;
+                                proxy_cache_bypass $http_upgrade;
+                                proxy_connect_timeout 60s;
+                                proxy_send_timeout 60s;
+                                proxy_read_timeout 60s;
+                                send_timeout 60s;
+                        }
+                }
+        }

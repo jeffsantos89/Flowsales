@@ -1,0 +1,31 @@
+{
+    "compilerOptions": {
+        "target": "ESNext",
+        "module": "CommonJS",
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "outDir": "./dist",
+        "rootDir": "./src",
+        "resolveJsonModule": true,
+        "noImplicitAny": true, // Evita o uso de 'any' implícito
+        "noUnusedLocals": true, // Remove variáveis locais não utilizadas
+        "noUnusedParameters": true, // Remove parâmetros não utilizados
+        "noImplicitReturns": true, // Garante que todas as funções retornem um valor
+        "noFallthroughCasesInSwitch": true, // Evita casos de fallthrough em switch
+        "strictNullChecks": true, // Habilita verificações estritas de null
+        "strictFunctionTypes": true, // Verifica tipos de funções estritamente
+        "strictPropertyInitialization": true, // Verifica inicialização de propriedades
+        "incremental": true, // Habilita build incremental para melhorar a performance
+        "tsBuildInfoFile": "./dist/.tsbuildinfo", // Arquivo de informações de build incremental
+        "sourceMap": true, // Gera arquivos de mapa de origem para depuração
+        "declaration": true, // Gera arquivos de declaração (.d.ts)
+        "declarationMap": true, // Gera mapas de declaração para depuração
+        "removeComments": true, // Remove comentários no código gerado
+        "emitDecoratorMetadata": true, // Emite metadados para decoradores
+        "experimentalDecorators": true // Habilita suporte a decoradores experimentais
+    },
+    "include": ["src/**/*"],
+    "exclude": ["node_modules", "dist", "**/*.spec.ts"] // Exclui arquivos de teste
+}

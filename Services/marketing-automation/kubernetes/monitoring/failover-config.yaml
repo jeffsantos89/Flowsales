@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-failover-config
+  namespace: monitoring
+  labels:
+    app: marketing-automation
+    component: failover
+  annotations:
+    description: Configuration for database failover
+data:
+  PRIMARY_DB_HOST: postgres-primary
+  SECONDARY_DB_HOST: postgres-secondary
+  PRIMARY_DB_PORT: "5432"
+  SECONDARY_DB_PORT: "5432"
+  FAILOVER_STRATEGY: "automatic"
+  HEALTH_CHECK_INTERVAL: "30s"
+  MAX_RETRIES: "3"

@@ -1,0 +1,118 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: flowsale-ingress
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+spec:
+  rules:
+    - host: auth.flowsale.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: auth-service
+                port:
+                  number: 80
+
+    - host: payment.flowsale.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: payment-service
+                port:
+                  number: 80
+
+    - host: leads.flowsale.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: leads-service
+                port:
+                  number: 80
+
+    - host: crm.flowsale.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: crm-service
+                port:
+                  number: 80
+
+    - host: voip.flowsale.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: voip-service
+                port:
+                  number: 80
+
+    - host: marketing.flowsale.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: marketing-service
+                port:
+                  number: 80
+
+    - host: integrations.flowsale.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: integrations-service
+                port:
+                  number: 80
+
+    - host: ai.flowsale.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ai-service
+                port:
+                  number: 80
+
+    - host: store.flowsale.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: store-service
+                port:
+                  number: 80
+tls:
+  - hosts:
+      - auth.flowsale.com
+      - payment.flowsale.com
+      - leads.flowsale.com
+      - crm.flowsale.com
+      - voip.flowsale.com
+      - marketing.flowsale.com
+      - integrations.flowsale.com
+      - ai.flowsale.com
+      - store.flowsale.com
+    secretName: flowsale-tls

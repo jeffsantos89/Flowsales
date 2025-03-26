@@ -1,0 +1,58 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "ai-service.fullname" . }}-hpa
+  labels:
+    {{- include "ai-service.labels" . | nindent 4 }}
+  annotations:
+    description: "HPA for AI Service"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "ai-service.fullname" . }}
+  minReplicas: {{ .Values.autoscaling.minReplicas | default 2 }}
+  maxReplicas: {{ .Values.autoscaling.maxReplicas | default 10 }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage | default 70 }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage | default 80 }}
+    {{- if .Values.autoscaling.customMetrics }}
+    - type: Pods
+      pods:
+        metric:
+          name: {{ .Values.autoscaling.customMetrics.name }}
+        target:
+          type: AverageValue
+          averageValue: {{ .Values.autoscaling.customMetrics.targetAverageValue }}
+    {{- end }}
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: {{ .Values.autoscaling.scaleUp.stabilizationWindowSeconds | default 30 }}
+      policies:
+        - type: Percent
+          value: {{ .Values.autoscaling.scaleUp.percentValue | default 50 }}
+          periodSeconds: {{ .Values.autoscaling.scaleUp.periodSeconds | default 30 }}
+        - type: Pods
+          value: {{ .Values.autoscaling.scaleUp.podsValue | default 4 }}
+          periodSeconds: {{ .Values.autoscaling.scaleUp.periodSeconds | default 30 }}
+      selectPolicy: Max
+    scaleDown:
+      stabilizationWindowSeconds: {{ .Values.autoscaling.scaleDown.stabilizationWindowSeconds | default 300 }}
+      policies:
+        - type: Percent
+          value: {{ .Values.autoscaling.scaleDown.percentValue | default 50 }}
+          periodSeconds: {{ .Values.autoscaling.scaleDown.periodSeconds | default 60 }}
+        - type: Pods
+          value: {{ .Values.autoscaling.scaleDown.podsValue | default 2 }}
+          periodSeconds: {{ .Values.autoscaling.scaleDown.periodSeconds | default 60 }}
+      selectPolicy: Min

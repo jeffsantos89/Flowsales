@@ -1,0 +1,40 @@
+name: OWASP ZAP Scan
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  zap-scan:
+    runs-on: ubuntu-latest
+
+    env:
+      TARGET_URL: http://api.flowsale.com.br
+      REPORT_NAME: zap-report.html
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Pull OWASP ZAP Docker Image
+        run: docker pull owasp/zap2docker-stable
+
+      - name: Run OWASP ZAP Scan
+        run: docker run -t owasp/zap2docker-stable zap-baseline.py -t ${{ env.TARGET_URL }} -r ${{ env.REPORT_NAME }}
+
+      - name: Upload ZAP Report
+        uses: actions/upload-artifact@v2
+        with:
+          name: zap-report
+          path: ${{ env.REPORT_NAME }}
+
+      - name: Notify on Failure
+        if: failure()
+        run: echo "ZAP Scan failed. Please check the report for details."

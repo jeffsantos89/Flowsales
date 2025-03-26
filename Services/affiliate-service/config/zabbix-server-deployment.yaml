@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zabbix-server
+  labels:
+    app: zabbix
+spec:
+  replicas: 1  # Apenas uma réplica, pois o Zabbix Server não escala horizontalmente por padrão
+  selector:
+    matchLabels:
+      app: zabbix
+  template:
+    metadata:
+      labels:
+        app: zabbix
+    spec:
+      containers:
+        - name: zabbix-server
+          image: zabbix/zabbix-server-pgsql:latest  # Usa a imagem oficial do Zabbix Server com PostgreSQL
+          env:
+            - name: DB_SERVER_HOST
+              value: "postgres-cluster"  # Nome do serviço PostgreSQL no cluster
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials  # Referência ao Secret contendo usuário do banco
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials  # Referência ao Secret contendo senha do banco
+                  key: password
+            - name: POSTGRES_DB
+              value: "zabbix"  # Nome do banco de dados para o Zabbix
+            - name: ZBX_HISTORYSTORAGEURL
+              value: "postgresql://postgres-cluster/zabbix"  # Conexão direta com o banco
+          ports:
+            - containerPort: 10051  # Porta padrão do Zabbix Server
+          volumeMounts:
+            - name: zabbix-config
+              mountPath: /etc/zabbix/zabbix_server.conf.d  # Monta configurações customizadas
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            tcpSocket:
+              port: 10051
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            tcpSocket:
+              port: 10051
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        - name: zabbix-config
+          configMap:
+            name: zabbix-config  # Configuração customizada via ConfigMap (se houver)
+      restartPolicy: Always
+

@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: social-media-config
+  namespace: ai
+data:
+  facebook-api-url: "https://graph.facebook.com/v15.0"
+  instagram-api-url: "https://graph.instagram.com"
+  linkedin-api-url: "https://api.linkedin.com/v2"
+  tiktok-api-url: "https://open-api.tiktok.com/v2"
+  twitter-api-url: "https://api.twitter.com/2"
+  youtube-api-url: "https://www.googleapis.com/youtube/v3"
+  pinterest-api-url: "https://api.pinterest.com/v5"
+  api-version: "2.0"
+  request-timeout: "30s"
+  max-retries: "3"
+  rate-limit: "100"
+  cache-ttl: "3600"
+  enable-metrics: "true"
+  monitoring-endpoint: "/metrics"
+  log-level: "info"
+  cors-allowed-origins: "*"

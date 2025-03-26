@@ -1,0 +1,144 @@
+# Cluster Issuers
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-cluster-issuer
+  annotations:
+    description: "Cluster-wide self-signed issuer for development"
+    environment: "development"
+  labels:
+    type: "self-signed"
+spec:
+  selfSigned: {}
+
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+  annotations:
+    description: "Let's Encrypt Staging environment for testing"
+    environment: "staging"
+  labels:
+    type: "letsencrypt"
+spec:
+  acme:
+    email: security@ai-service.com
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-staging
+    solvers:
+      - http01:
+          ingress:
+            class: nginx
+            podTemplate:
+              spec:
+                nodeSelector:
+                  kubernetes.io/os: linux
+                resources:
+                  limits:
+                    cpu: 100m
+                    memory: 128Mi
+                  requests:
+                    cpu: 50m
+                    memory: 64Mi
+
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+  annotations:
+    description: "Let's Encrypt Production environment"
+    environment: "production"
+  labels:
+    type: "letsencrypt"
+spec:
+  acme:
+    email: security@ai-service.com
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    solvers:
+      - http01:
+          ingress:
+            class: nginx
+            podTemplate:
+              spec:
+                nodeSelector:
+                  kubernetes.io/os: linux
+                resources:
+                  limits:
+                    cpu: 200m
+                    memory: 256Mi
+                  requests:
+                    cpu: 100m
+                    memory: 128Mi
+
+---
+# Certificates
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: internal-cert
+  namespace: default
+  annotations:
+    description: "Certificate for internal services"
+    environment: "development"
+  labels:
+    type: "internal"
+spec:
+  secretName: internal-cert-tls
+  duration: 8760h # 1 year
+  renewBefore: 720h # 30 days
+  privateKey:
+    algorithm: RSA
+    size: 4096
+    encoding: PKCS1
+    rotationPolicy: Always
+  issuerRef:
+    name: selfsigned-cluster-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+  dnsNames:
+    - "*.internal.local"
+    - "*.cluster.local"
+  subject:
+    organizations:
+      - "AI Service"
+    organizationalUnits:
+      - "Infrastructure"
+
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ai-service-cert
+  namespace: default
+  annotations:
+    description: "Production certificate for AI Service"
+    environment: "production"
+  labels:
+    type: "production"
+spec:
+  secretName: ai-service-tls
+  duration: 8760h # 1 year
+  renewBefore: 720h # 30 days
+  privateKey:
+    algorithm: RSA
+    size: 4096
+    encoding: PKCS1
+    rotationPolicy: Always
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+    group: cert-manager.io
+  dnsNames:
+    - ai-service.example.com
+    - api.ai-service.example.com
+    - www.ai-service.example.com
+  subject:
+    organizations:
+      - "AI Service"
+    organizationalUnits:
+      - "Production"

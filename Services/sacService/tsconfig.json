@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "es2016",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": "./dist",
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "sourceMap": true, // Gera mapas de origem para facilitar a depuração
+    "declaration": true, // Gera arquivos de declaração .d.ts
+    "declarationMap": true, // Gera mapas de origem para arquivos de declaração
+    "removeComments": false, // Mantém os comentários no código gerado
+    "noImplicitAny": true, // Evita o uso de tipos 'any' implícitos
+    "strictNullChecks": true, // Habilita verificações estritas de null
+    "strictFunctionTypes": true, // Habilita verificações estritas de tipos de função
+    "strictPropertyInitialization": true, // Verifica inicialização de propriedades de classe
+    "noUnusedLocals": true, // Erro para variáveis locais não utilizadas
+    "noUnusedParameters": true, // Erro para parâmetros não utilizados
+    "noImplicitReturns": true, // Erro para funções que não retornam explicitamente um valor
+    "noFallthroughCasesInSwitch": true, // Erro para casos de switch que caem através de outros casos  
+  "forceConsistentCasingInFileNames": true, // Força o uso consistente de maiúsculas e minúsculas em nomes de arquivos
+  
+  },
+
+  "include": ["src"],
+  "exclude": ["node_modules", "**/*.test.ts"]
+}

@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zabbix-agent
+  labels:
+    app: zabbix-agent
+spec:
+  replicas: 3  # Define 3 réplicas para alta disponibilidade
+  selector:
+    matchLabels:
+      app: zabbix-agent
+  template:
+    metadata:
+      labels:
+        app: zabbix-agent
+    spec:
+      containers:
+        - name: zabbix-agent
+          image: zabbix/zabbix-agent:latest  # Imagem oficial do Zabbix Agent
+          env:
+            - name: ZBX_SERVER_HOST
+              value: "zabbix-server"  # Define o host do servidor Zabbix
+            - name: ZBX_SERVER_PORT
+              value: "10051"  # Define a porta do servidor Zabbix
+            - name: ZBX_HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name  # Usa o nome do pod como hostname para identificação no Zabbix
+            - name: ZBX_ACTIVE
+              value: "true"  # Ativa o modo ativo, onde o agente envia dados diretamente ao servidor
+          ports:
+            - containerPort: 10050  # Porta padrão do Zabbix Agent
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
+          livenessProbe:
+            tcpSocket:
+              port: 10050
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 10050
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      restartPolicy: Always
+

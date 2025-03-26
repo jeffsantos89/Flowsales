@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: leads-service
+  labels:
+    app: leads-service
+spec:
+  selector:
+    app: leads-service
+  ports:
+    - port: 80
+      targetPort: 3001
+      protocol: TCP
+      name: http
+  type: ClusterIP
+  sessionAffinity: None
+  ipFamilyPolicy: SingleStack
+  ipFamilies:
+    - IPv4

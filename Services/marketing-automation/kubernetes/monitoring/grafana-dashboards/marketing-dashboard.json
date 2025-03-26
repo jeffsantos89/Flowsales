@@ -1,0 +1,102 @@
+{
+  "title": "Marketing Automation Dashboard",
+  "refresh": "10s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "type": "datasource",
+        "name": "Datasource",
+        "query": "prometheus",
+        "refresh": 1
+      },
+      {
+        "type": "interval",
+        "name": "Interval",
+        "query": "1m,5m,10m,30m,1h",
+        "current": {
+          "text": "1m",
+          "value": "1m"
+        },
+        "auto": true
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "name": "Deployments",
+        "datasource": "prometheus",
+        "iconColor": "rgba(255, 96, 96, 1)",
+        "enable": true,
+        "query": "kube_deployment_status_replicas{namespace=\"default\"}",
+        "titleFormat": "Deployment: {{deployment}}",
+        "textFormat": "Namespace: {{namespace}}"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "graph",
+      "title": "API Requests per Minute",
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total[$Interval]))",
+          "legendFormat": "{{method}} {{route}}"
+        }
+      ],
+      "datasource": "$Datasource"
+    },
+    {
+      "type": "graph",
+      "title": "CPU Usage",
+      "targets": [
+        {
+          "expr": "sum(rate(container_cpu_usage_seconds_total[$Interval])) * 100",
+          "legendFormat": "{{pod}}"
+        }
+      ],
+      "datasource": "$Datasource"
+    },
+    {
+      "type": "graph",
+      "title": "Memory Usage",
+      "targets": [
+        {
+          "expr": "sum(container_memory_usage_bytes) / 1024 / 1024",
+          "legendFormat": "{{pod}}"
+        }
+      ],
+      "datasource": "$Datasource"
+    },
+    {
+      "type": "graph",
+      "title": "Disk I/O",
+      "targets": [
+        {
+          "expr": "rate(node_disk_io_time_seconds_total[$Interval])",
+          "legendFormat": "{{device}}"
+        }
+      ],
+      "datasource": "$Datasource"
+    },
+    {
+      "type": "graph",
+      "title": "Network Traffic",
+      "targets": [
+        {
+          "expr": "rate(container_network_receive_bytes_total[$Interval])",
+          "legendFormat": "Receive {{pod}}"
+        },
+        {
+          "expr": "rate(container_network_transmit_bytes_total[$Interval])",
+          "legendFormat": "Transmit {{pod}}"
+        }
+      ],
+      "datasource": "$Datasource"
+    }
+  ]
+}

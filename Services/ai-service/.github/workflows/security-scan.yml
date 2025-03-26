@@ -1,0 +1,173 @@
+name: Advanced Load Testing Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      targetUrl:
+        description: 'Application URL to test'
+        required: true
+        default: 'http://ai-service:4000'
+      duration:
+        description: 'Test duration (seconds)'
+        required: false
+        default: '60'
+      vus:
+        description: 'Number of virtual users'
+        required: false
+        default: '50'
+      threshold:
+        description: 'Performance threshold (ms)'
+        required: false
+        default: '1000'
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+
+env:
+  CACHE_KEY: k6-${{ github.sha }}
+  PROMETHEUS_URL: ${{ secrets.PROMETHEUS_URL }}
+  GRAFANA_API_KEY: ${{ secrets.GRAFANA_API_KEY }}
+
+jobs:
+  pre-check:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+    steps:
+      - name: Environment validation
+        id: check
+        run: |
+          if [[ "${{ github.event.inputs.environment }}" == "production" && "${{ github.ref }}" != "refs/heads/main" ]]; then
+            echo "should_run=false" >> $GITHUB_ENV
+            echo "❌ Production tests must be run from main branch only"
+            exit 1
+          fi
+          echo "should_run=true" >> $GITHUB_ENV
+
+  load-test:
+    needs: pre-check
+    if: env.should_run == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install k6 with caching
+        id: k6-cache
+        run: |
+          if [ ! -f /usr/bin/k6 ]; then
+            curl -s https://packagecloud.io/install/repositories/loadimpact/k6/script.deb.sh | sudo bash
+            sudo apt-get install -y k6
+          fi
+
+      - name: Validate Test Configuration
+        run: node ./scripts/validate-k6-config.js
+
+      - name: Run K6 Load Test
+        id: k6-test
+        run: |
+          k6 run \
+            --duration ${{ github.event.inputs.duration }}s \
+            --vus ${{ github.event.inputs.vus }} \
+            --tag environment=${{ github.event.inputs.environment }} \
+            --tag testid=${{ github.run_id }} \
+            --out json=./results.json \
+            --out prometheus=${{ env.PROMETHEUS_URL }} \
+            ./load-testing/k6-load-test.js \
+            -e TARGET_URL=${{ github.event.inputs.targetUrl }} \
+            -e THRESHOLD=${{ github.event.inputs.threshold }}
+
+      - name: Validate JSON output
+        run: jq empty results.json || { echo "❌ Invalid JSON output from k6"; exit 1; }
+
+      - name: Process Test Results
+        if: always()
+        run: node ./scripts/process-test-results.js ./results.json
+
+      - name: Store Test Results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: k6-results-${{ github.run_id }}
+          path: |
+            results.json
+            processed-results/
+          retention-days: 30
+
+      - name: Convert JSON to HTML Report
+        run: |
+          jq '.' results.json > summary.html
+
+      - name: Upload HTML Report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: summary-report-${{ github.run_id }}
+          path: summary.html
+          retention-days: 30
+
+      - name: Update Grafana Dashboard
+        if: success()
+        run: |
+          curl -X POST \
+            -H "Authorization: Bearer ${{ env.GRAFANA_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d @./processed-results/dashboard-data.json \
+            "${{ secrets.GRAFANA_URL }}/api/dashboards/db"
+
+      - name: Performance Check
+        if: always()
+        run: |
+          P95_TIME=$(jq '.metrics["http_req_duration{p(95)}"]' results.json)
+          if (( $(echo "$P95_TIME > ${{ github.event.inputs.threshold }}" | bc -l) )); then
+            echo "❌ Performance threshold exceeded: P95 = ${P95_TIME}ms"
+            exit 1
+          fi
+
+  notify:
+    needs: [load-test]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Notify Slack
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+          text: |
+            *Load Test Results*
+            Environment: ${{ github.event.inputs.environment }}
+            Duration: ${{ github.event.inputs.duration }}s
+            VUs: ${{ github.event.inputs.vus }}
+            Status: ${{ job.status }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Create GitHub Issue on Failure
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Load Test Failure - ${process.env.GITHUB_RUN_ID}`,
+              body: `Load test failed in ${process.env.GITHUB_WORKFLOW}\nEnvironment: ${process.env.INPUT_ENVIRONMENT}\nSee run: ${process.env.GITHUB_SERVER_URL}/${context.repo.owner}/${context.repo.repo}/actions/runs/${process.env.GITHUB_RUN_ID}`
+            })

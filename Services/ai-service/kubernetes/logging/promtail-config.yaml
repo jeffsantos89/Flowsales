@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promtail-config
+  namespace: logging
+  labels:
+    app: promtail
+    component: logging
+data:
+  promtail-config.yaml: |
+    server:
+      http_listen_port: 8000
+      grpc_listen_port: 9095
+      healthcheck_timeout: 5s
+
+    positions:
+      filename: /tmp/positions.yaml
+      sync_period: 10s
+      ignore_invalid_yaml: false
+
+    clients:
+      - url: http://loki-service:3100/loki/api/v1/push
+        tenant_id: "backup-system"
+        batchwait: 1s
+        batchsize: 1048576
+        timeout: 10s
+        backoff_config:
+          min_period: 500ms
+          max_period: 5m
+          max_retries: 10
+
+    scrape_configs:
+      - job_name: backup-logs
+        pipeline_stages:
+          - json:
+              expressions:
+                timestamp: time
+                level: level
+                message: msg
+          - timestamp:
+              source: timestamp
+              format: RFC3339
+          - labels:
+              level:
+          - output:
+              source: message
+
+        static_configs:
+          - targets:
+              - localhost
+            labels:
+              job: backup-logs
+              app: backup
+              namespace: database
+              instance: backup-intelligent
+              environment: production
+              team: database-ops
+              severity: info
+            __path__: "/var/log/backup/*.log"
+
+        relabel_configs:
+          - source_labels: ['__path__']
+            target_label: 'file'
+          - source_labels: ['__host__']
+            target_label: 'host'
+
+    limit_config:
+      readline_rate_limit: 10M
+      readline_rate_drop: true
+
+    tracing:
+      enabled: true

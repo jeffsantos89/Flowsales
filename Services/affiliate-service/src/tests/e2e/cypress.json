@@ -1,0 +1,28 @@
+{
+  "baseUrl": "https://localhost:4000",
+  "integrationFolder": "tests/e2e/integration",
+  "fixturesFolder": "tests/e2e/fixtures",
+  "supportFile": "tests/e2e/support/index.ts",
+  "screenshotsFolder": "tests/e2e/screenshots",
+  "videosFolder": "tests/e2e/videos",
+  "video": true,
+  "videoCompression": 32,
+  "chromeWebSecurity": false,
+  "defaultCommandTimeout": 20000,
+  "pageLoadTimeout": 60000,
+  "retries": {
+    "runMode": 2,
+    "openMode": 1
+  },
+  "env": {
+    "apiUrl": "https://localhost:4000/api",
+    "authToken": "your_token_here"
+  },
+  "reporter": "mochawesome",
+  "reporterOptions": {
+    "reportDir": "tests/e2e/results",
+    "overwrite": false,
+    "html": true,
+    "json": true
+  }
+}

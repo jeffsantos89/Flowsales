@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafka-config
+  namespace: kafka
+  labels:
+    app: kafka
+    environment: production
+    version: "2.0"
+data:
+  # Broker Configuration
+  KAFKA_BROKER: kafka:9092
+  KAFKA_ZOOKEEPER_CONNECT: zookeeper-0.zookeeper-headless.kafka.svc.cluster.local:2181,zookeeper-1.zookeeper-headless.kafka.svc.cluster.local:2181,zookeeper-2.zookeeper-headless.kafka.svc.cluster.local:2181
+  KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://kafka.example.com:9093
+  KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:SASL_SSL,EXTERNAL:SASL_SSL
+  
+  # Performance & Reliability
+  KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"  # Disable auto-creation for better control
+  KAFKA_DEFAULT_REPLICATION_FACTOR: "3"
+  KAFKA_MIN_INSYNC_REPLICAS: "2"
+  KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "3"
+  KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "3"
+  KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "2"
+  
+  # Log Management
+  KAFKA_LOG_RETENTION_HOURS: "168"  # 7 days
+  KAFKA_LOG_SEGMENT_BYTES: "1073741824"  # 1GB
+  KAFKA_LOG_RETENTION_BYTES: "1099511627776"  # 1TB
+  KAFKA_LOG_CLEANER_ENABLE: "true"
+  
+  # Resource Management
+  KAFKA_MESSAGE_MAX_BYTES: "1048576"  # 1MB
+  KAFKA_REPLICA_FETCH_MAX_BYTES: "1048576"
+  KAFKA_COMPRESSION_TYPE: "lz4"
+
+kafka:
+  bootstrap_servers:
+    - "kafka-0.kafka-headless.kafka.svc.cluster.local:9092"
+    - "kafka-1.kafka-headless.kafka.svc.cluster.local:9092"
+    - "kafka-2.kafka-headless.kafka.svc.cluster.local:9092"
+    - "kafka-3.kafka-headless.kafka.svc.cluster.local:9092"
+    - "kafka-4.kafka-headless.kafka.svc.cluster.local:9092"
+
+  topic_config:
+    ai_service_events:
+      partitions: 12  # Increased for better parallelism
+      replication_factor: 3  # Increased for better reliability
+      retention_hours: 168
+      cleanup.policy: "delete"
+      min.insync.replicas: "2"
+      compression.type: "lz4"
+      max.message.bytes: "1048576"
+
+  security:
+    sasl:
+      enabled: true
+      mechanism: SCRAM-SHA-512
+      username: ${KAFKA_USER}
+      password: ${KAFKA_PASSWORD}
+    ssl:
+      enabled: true
+      ca_cert_path: "/etc/kafka/tls/ca.crt"
+      cert_path: "/etc/kafka/tls/client.crt"
+      key_path: "/etc/kafka/tls/client.key"
+      verify_hostname: true
+
+  monitoring:
+    prometheus:
+      enabled: true
+      jmx_exporter_port: 9404
+
+  resources:
+    limits:
+      cpu: "4"
+      memory: "8Gi"
+    requests:
+      cpu: "2"
+      memory: "4Gi"

@@ -1,0 +1,79 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Python
+venv/
+.env*
+*.log
+*.sqlite3
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.whl
+*.egg-info/
+dist/
+build/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Docker
+docker-compose.override.yml
+.dockerignore
+Dockerfile*
+docker-compose*.yml
+
+# Editor e Sistema Operacional
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*~
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Test coverage
+coverage/
+*.cover
+*.coverage
+*.lcov
+
+# Distribution / packaging
+.Python
+*.egg
+*.egg-info
+.eggs
+MANIFEST
+
+# Virtualenv
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# macOS
+*.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+*.stackdump

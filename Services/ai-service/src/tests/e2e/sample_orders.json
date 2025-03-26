@@ -1,0 +1,149 @@
+{
+    "version": "2.0",
+    "metadata": {
+        "lastUpdated": "2024-01-10T10:00:00Z",
+        "environment": "production",
+        "schemaVersion": "1.0.0"
+    },
+    "orders": [
+        {
+            "orderId": "ORD-2024-0001",
+            "status": "completed",
+            "createdAt": "2024-01-10T08:30:00Z",
+            "updatedAt": "2024-01-10T09:15:00Z",
+            "customer": {
+                "id": "CUST-001",
+                "firstName": "John",
+                "lastName": "Doe",
+                "email": "john.doe@example.com",
+                "phone": "+1-555-0123",
+                "address": {
+                    "street": "123 Main St",
+                    "city": "New York",
+                    "state": "NY",
+                    "zipCode": "10001",
+                    "country": "USA",
+                    "coordinates": {
+                        "latitude": 40.7128,
+                        "longitude": -74.0060
+                    }
+                }
+            },
+            "items": [
+                {
+                    "productId": "PROD-A101",
+                    "sku": "SKU-001",
+                    "name": "Premium Widget",
+                    "quantity": 2,
+                    "unitPrice": 29.99,
+                    "currency": "USD",
+                    "discount": {
+                        "type": "percentage",
+                        "value": 10.00
+                    },
+                    "metadata": {
+                        "weight": "0.5kg",
+                        "dimensions": "10x5x3cm",
+                        "category": "electronics"
+                    }
+                }
+            ],
+            "payment": {
+                "transactionId": "TRX-001",
+                "method": "credit_card",
+                "status": "processed",
+                "amount": 53.98,
+                "currency": "USD",
+                "processingFee": 1.50
+            },
+            "shipping": {
+                "method": "express",
+                "carrier": "FedEx",
+                "trackingNumber": "FDX123456789",
+                "estimatedDelivery": "2024-01-12T15:00:00Z",
+                "cost": 8.50
+            },
+            "totals": {
+                "subtotal": 59.98,
+                "discount": 6.00,
+                "shipping": 8.50,
+                "tax": 4.99,
+                "total": 67.47
+            },
+            "notes": [
+                {
+                    "type": "customer",
+                    "content": "Please leave at front door",
+                    "timestamp": "2024-01-10T08:30:00Z"
+                }
+            ]
+        },
+        {
+            "orderId": "ORD-2024-0002",
+            "status": "processing",
+            "createdAt": "2024-01-10T09:45:00Z",
+            "updatedAt": "2024-01-10T09:45:00Z",
+            "customer": {
+                "id": "CUST-002",
+                "firstName": "Jane",
+                "lastName": "Smith",
+                "email": "jane.smith@example.com",
+                "phone": "+1-555-0124",
+                "address": {
+                    "street": "456 Oak Avenue",
+                    "city": "Los Angeles",
+                    "state": "CA",
+                    "zipCode": "90001",
+                    "country": "USA",
+                    "coordinates": {
+                        "latitude": 34.0522,
+                        "longitude": -118.2437
+                    }
+                }
+            },
+            "items": [
+                {
+                    "productId": "PROD-B202",
+                    "sku": "SKU-002",
+                    "name": "Deluxe Gadget",
+                    "quantity": 1,
+                    "unitPrice": 99.99,
+                    "currency": "USD",
+                    "metadata": {
+                        "weight": "1.2kg",
+                        "dimensions": "20x15x10cm",
+                        "category": "gadgets"
+                    }
+                }
+            ],
+            "payment": {
+                "transactionId": "TRX-002",
+                "method": "paypal",
+                "status": "pending",
+                "amount": 99.99,
+                "currency": "USD",
+                "processingFee": 2.50
+            },
+            "shipping": {
+                "method": "standard",
+                "carrier": "UPS",
+                "trackingNumber": "UPS987654321",
+                "estimatedDelivery": "2024-01-14T15:00:00Z",
+                "cost": 5.99
+            },
+            "totals": {
+                "subtotal": 99.99,
+                "discount": 0.00,
+                "shipping": 5.99,
+                "tax": 8.50,
+                "total": 114.48
+            }
+        }
+    ],
+    "pagination": {
+        "currentPage": 1,
+        "totalPages": 1,
+        "itemsPerPage": 10,
+        "totalItems": 2
+    }
+}

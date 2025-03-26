@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-logging-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    {{- with .Values.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+data:
+  logging.yaml: |
+    version: 1
+    disable_existing_loggers: false
+    formatters:
+      standard:
+        format: '%(asctime)s - [%(levelname)s] - %(name)s - (%(filename)s).%(funcName)s(%(lineno)d) - %(message)s'
+        datefmt: '%Y-%m-%d %H:%M:%S'
+      json:
+        class: pythonjsonlogger.jsonlogger.JsonFormatter
+        format: '%(asctime)s %(name)s %(levelname)s %(message)s %(filename)s %(funcName)s %(lineno)d %(process)d %(thread)d'
+
+    filters:
+      require_debug_false:
+        (): django.utils.log.RequireDebugFalse
+      require_debug_true:
+        (): django.utils.log.RequireDebugTrue
+
+    handlers:
+      console:
+        class: logging.StreamHandler
+        formatter: json
+        level: INFO
+        stream: ext://sys.stdout
+
+      file:
+        class: logging.handlers.RotatingFileHandler
+        formatter: standard
+        level: DEBUG
+        filename: /var/log/app/application.log
+        maxBytes: 10485760  # 10MB
+        backupCount: 5
+        encoding: utf8
+
+      error_file:
+        class: logging.handlers.TimedRotatingFileHandler
+        formatter: json
+        level: ERROR
+        filename: /var/log/app/error.log
+        when: midnight
+        interval: 1
+        backupCount: 30
+        encoding: utf8
+
+    root:
+      level: {{ .Values.logging.rootLevel | default "INFO" }}
+      handlers: [console, file, error_file]
+
+    loggers:
+      app:
+        level: {{ .Values.logging.appLevel | default "DEBUG" }}
+        handlers: [console, file, error_file]
+        propagate: false
+
+      security:
+        level: {{ .Values.logging.securityLevel | default "INFO" }}
+        handlers: [console, error_file]
+        propagate: false
+
+      performance:
+        level: {{ .Values.logging.performanceLevel | default "INFO" }}
+        handlers: [console, file]
+        propagate: false
+
+  log4j2.xml: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <Configuration status="INFO">
+      <Properties>
+        <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</Property>
+      </Properties>
+      <Appenders>
+        <Console name="ConsoleAppender" target="SYSTEM_OUT">
+          <PatternLayout pattern="${LOG_PATTERN}"/>
+        </Console>
+      </Appenders>
+      <Loggers>
+        <Root level="${env:LOG_LEVEL:-INFO}">
+          <AppenderRef ref="ConsoleAppender"/>
+        </Root>
+      </Loggers>
+    </Configuration>

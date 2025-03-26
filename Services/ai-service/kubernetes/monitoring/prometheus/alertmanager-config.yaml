@@ -1,0 +1,91 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: ai
+  labels:
+    app: alertmanager
+    environment: production
+data:
+  alertmanager.yml: |
+    global:
+      resolve_timeout: 5m
+      slack_api_url: 'https://hooks.slack.com/services/SEU-WEBHOOK'
+      smtp_smarthost: 'smtp.gmail.com:587'
+      smtp_from: 'alertmanager@yourdomain.com'
+      smtp_auth_username: 'your-email@yourdomain.com'
+      smtp_auth_password: '${SMTP_PASSWORD}'
+
+    templates:
+      - '/etc/alertmanager/templates/*.tmpl'
+
+    route:
+      receiver: 'default-receiver'
+      group_by: ['cluster', 'alertname', 'service']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+
+      routes:
+      - receiver: 'critical-alerts'
+        match:
+          severity: critical
+        group_wait: 10s
+        repeat_interval: 1h
+
+      - receiver: 'warning-alerts'
+        match:
+          severity: warning
+        group_wait: 30s
+        repeat_interval: 2h
+
+      - receiver: 'info-alerts'
+        match:
+          severity: info
+        group_wait: 1m
+        repeat_interval: 6h
+
+    inhibit_rules:
+      - source_match:
+          severity: 'critical'
+        target_match:
+          severity: 'warning'
+        equal: ['alertname', 'cluster', 'service']
+
+    receivers:
+      - name: 'default-receiver'
+        slack_configs:
+          - channel: '#alerts'
+            send_resolved: true
+            icon_emoji: ':bell:'
+            title: '{{ template "slack.default.title" . }}'
+            text: '{{ template "slack.default.text" . }}'
+            footer: 'AI-Service Alertmanager'
+
+      - name: 'critical-alerts'
+        slack_configs:
+          - channel: '#critical-alerts'
+            send_resolved: true
+            icon_emoji: ':rotating_light:'
+            title: '{{ template "slack.critical.title" . }}'
+            text: '{{ template "slack.critical.text" . }}'
+            footer: 'AI-Service Alertmanager'
+        email_configs:
+          - to: 'oncall@yourdomain.com'
+            send_resolved: true
+
+      - name: 'warning-alerts'
+        slack_configs:
+          - channel: '#warning-alerts'
+            send_resolved: true
+            icon_emoji: ':warning:'
+            title: '{{ template "slack.warning.title" . }}'
+            text: '{{ template "slack.warning.text" . }}'
+
+      - name: 'info-alerts'
+        slack_configs:
+          - channel: '#info-alerts'
+            send_resolved: true
+            icon_emoji: ':information_source:'
+            title: '{{ template "slack.info.title" . }}'
+            text: '{{ template "slack.info.text" . }}'

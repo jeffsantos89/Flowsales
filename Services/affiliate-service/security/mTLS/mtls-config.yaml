@@ -1,0 +1,11 @@
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: affiliate-service-mtls
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: affiliate-service  # Aplica mTLS apenas para o affiliate-service
+  mtls:
+    mode: STRICT  # Exige mTLS para todas as comunicações com este serviço

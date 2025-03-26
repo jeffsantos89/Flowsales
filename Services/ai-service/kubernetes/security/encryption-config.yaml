@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: EncryptionConfiguration
+metadata:
+  name: encryption-config
+spec:
+  encryption:
+    # Primary encryption configuration
+    primary:
+      algorithm: AES-256-GCM
+      secret_key: ${ENCRYPTION_SECRET}
+      iv_length: 16
+      hash_algorithm: SHA256
+      key_rotation:
+        enabled: true
+        interval_days: 30
+    
+    # Fallback configurations for key rotation
+    fallback:
+      - algorithm: AES-256-GCM
+        secret_key: ${ENCRYPTION_SECRET_FALLBACK}
+        iv_length: 16
+        hash_algorithm: SHA256
+    
+    # Security settings
+    security:
+      min_key_length: 32
+      max_key_age_days: 90
+      require_strong_keys: true
+    
+    # Monitoring and logging
+    monitoring:
+      enabled: true
+      log_level: INFO
+      alert_on_failures: true
+    
+    # Performance tuning
+    performance:
+      cache_size: 1000
+      timeout_seconds: 5
+      max_retries: 3

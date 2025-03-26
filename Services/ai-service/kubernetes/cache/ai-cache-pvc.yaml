@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ai-cache-pvc
+  namespace: cache
+  labels:
+    app: ai-service
+    tier: cache
+  annotations:
+    volume.beta.kubernetes.io/storage-class: standard
+    volume.beta.kubernetes.io/storage-provisioner: kubernetes.io/gce-pd
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 10Gi
+    limits:
+      storage: 15Gi
+  selector:
+    matchLabels:
+      type: ssd
+  volumeName: ai-cache-volume

@@ -1,0 +1,50 @@
+global:
+  scrape_interval: 15s  # Frequência padrão para coleta de métricas
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - 'alertmanager:9093'
+
+rule_files:
+  - 'alert-rules.yml'  # Arquivo de regras de alerta (criar separadamente)
+
+scrape_configs:
+  - job_name: 'affiliate-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['affiliate-service:4000']
+
+  - job_name: 'kubernetes'
+    kubernetes_sd_configs:
+      - role: pod
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        action: keep
+        regex: 'affiliate-service'
+
+  - job_name: 'zabbix'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['zabbix-server:10051']
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres:5432']
+
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['kafka:9092']
+
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']

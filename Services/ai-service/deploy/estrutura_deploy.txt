@@ -1,0 +1,36 @@
+Listagem de caminhos de pasta
+O número de série do volume é FCEB-9C48
+C:.
+|   estrutura_deploy.txt
+|   
++---argo-cd
+|       app.yaml
+|       config.yaml
+|       project.yaml
+|       sync.yaml
+|       
++---helm
+|   |   Chart.yaml
+|   |   values.yaml
+|   |   
+|   \---templates
+|           deployment.yaml
+|           hpa.yaml
+|           ingress.yaml
+|           rbac.yaml
+|           secrets.yaml
+|           service.yaml
+|           
+\---terraform
+        cdn-cloudfront.tf
+        database.tf
+        eks.tf
+        main.tf
+        monitoring.tf
+        networking.tf
+        outputs.tf
+        providers.tf
+        security.tf
+        storage.tf
+        variables.tf
+        

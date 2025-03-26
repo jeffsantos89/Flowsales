@@ -1,0 +1,143 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: encrypted-backup
+  labels:
+    app: database-backup
+    tier: maintenance
+spec:
+  schedule: "0 2 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      template:
+        metadata:
+          labels:
+            app: database-backup
+        spec:
+          containers:
+            - name: backup
+              image: postgres:15-alpine
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  echo "Starting backup process at $(date)"
+                  
+                  # Create backup directory with timestamp
+                  BACKUP_DATE=$(date +\%Y\%m\%d_\%H\%M\%S)
+                  BACKUP_DIR="/backups/$BACKUP_DATE"
+                  mkdir -p $BACKUP_DIR
+                  
+                  # Perform database backup
+                  echo "Performing database dump..."
+                  PGPASSWORD=$POSTGRES_PASSWORD pg_dump \
+                    -h $POSTGRES_HOST \
+                    -U $POSTGRES_USER \
+                    -F c \
+                    -v \
+                    -f $BACKUP_DIR/flowsale.sql \
+                    $POSTGRES_DB
+                  
+                  # Encrypt backup
+                  echo "Encrypting backup..."
+                  openssl enc -aes-256-cbc \
+                    -salt \
+                    -in $BACKUP_DIR/flowsale.sql \
+                    -out $BACKUP_DIR/flowsale_encrypted.sql \
+                    -k $ENCRYPTION_KEY
+                  
+                  # Cleanup unencrypted file
+                  rm $BACKUP_DIR/flowsale.sql
+                  
+                  # Create checksum
+                  sha256sum $BACKUP_DIR/flowsale_encrypted.sql > $BACKUP_DIR/checksum.txt
+                  
+                  # Cleanup old backups (keep last 7 days)
+                  find /backups -type d -mtime +7 -exec rm -rf {} +
+                  
+                  echo "Backup completed successfully at $(date)"
+              env:
+                - name: POSTGRES_HOST
+                  valueFrom:
+                    configMapKeyRef:
+                      name: db-config
+                      key: host
+                - name: POSTGRES_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-secret
+                      key: username
+                - name: POSTGRES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-secret
+                      key: password
+                - name: POSTGRES_DB
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-secret
+                      key: database
+                - name: ENCRYPTION_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: encryption-secret
+                      key: key
+                - name: TZ
+                  value: "UTC"
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backups
+              resources:
+                requests:
+                  memory: "512Mi"
+                  cpu: "500m"
+                limits:
+                  memory: "1Gi"
+                  cpu: "1"
+              livenessProbe:
+                exec:
+                  command:
+                    - sh
+                    - -c
+                    - ps aux | grep pg_dump
+                initialDelaySeconds: 5
+                periodSeconds: 10
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 999
+                readOnlyRootFilesystem: true
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: backup-pvc
+          restartPolicy: OnFailure
+          serviceAccountName: backup-service-account
+          securityContext:
+            fsGroup: 999
+          initContainers:
+            - name: init-backup
+              image: busybox:stable
+              command: ["sh", "-c", "mkdir -p /backups && chmod 750 /backups"]
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backups
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 999
+          terminationGracePeriodSeconds: 300
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                        - key: app
+                          operator: In
+                          values:
+                            - database-backup
+                    topologyKey: kubernetes.io/hostname

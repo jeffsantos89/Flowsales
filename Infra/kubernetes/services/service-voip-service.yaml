@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: voip-service
+  labels:
+    app: voip-service
+spec:
+  selector:
+    app: voip-service
+  ports:
+    - port: 80
+      targetPort: 3001
+      protocol: TCP
+      name: http
+  type: ClusterIP
+  sessionAffinity: None
+  ipFamilyPolicy: SingleStack
+  ipFamilies:
+    - IPv4

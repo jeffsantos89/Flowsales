@@ -1,0 +1,145 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ai-service-account
+  namespace: ai
+  labels:
+    app: ai-service
+  annotations:
+    description: Service account for AI service
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: ai
+  name: ai-service-role-pods
+  labels:
+    app: ai-service
+  annotations:
+    description: Role for managing pods, services, and configmaps
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "configmaps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: ai
+  name: ai-service-role-secrets
+  labels:
+    app: ai-service
+  annotations:
+    description: Role for managing secrets
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: ai
+  name: ai-service-role-apps
+  labels:
+    app: ai-service
+  annotations:
+    description: Role for managing deployments, statefulsets, and daemonsets
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: ai
+  name: ai-service-role-batch
+  labels:
+    app: ai-service
+  annotations:
+    description: Role for managing jobs and cronjobs
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ai-service-rolebinding-pods
+  namespace: ai
+  labels:
+    app: ai-service
+  annotations:
+    description: RoleBinding for ai-service-role-pods
+subjects:
+  - kind: ServiceAccount
+    name: ai-service-account
+    namespace: ai
+roleRef:
+  kind: Role
+  name: ai-service-role-pods
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ai-service-rolebinding-secrets
+  namespace: ai
+  labels:
+    app: ai-service
+  annotations:
+    description: RoleBinding for ai-service-role-secrets
+subjects:
+  - kind: ServiceAccount
+    name: ai-service-account
+    namespace: ai
+roleRef:
+  kind: Role
+  name: ai-service-role-secrets
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ai-service-rolebinding-apps
+  namespace: ai
+  labels:
+    app: ai-service
+  annotations:
+    description: RoleBinding for ai-service-role-apps
+subjects:
+  - kind: ServiceAccount
+    name: ai-service-account
+    namespace: ai
+roleRef:
+  kind: Role
+  name: ai-service-role-apps
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ai-service-rolebinding-batch
+  namespace: ai
+  labels:
+    app: ai-service
+  annotations:
+    description: RoleBinding for ai-service-role-batch
+subjects:
+  - kind: ServiceAccount
+    name: ai-service-account
+    namespace: ai
+roleRef:
+  kind: Role
+  name: ai-service-role-batch
+  apiGroup: rbac.authorization.k8s.io

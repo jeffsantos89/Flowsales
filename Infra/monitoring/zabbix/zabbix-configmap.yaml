@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zabbix-config
+  namespace: monitoring
+data:
+  zabbix_server.conf: |
+    LogType=console
+    LogFile=/tmp/zabbix_server.log
+    DebugLevel=3
+    StartPollers=50
+    StartTrappers=15
+    StartDiscoverers=5
+    CacheSize=512M
+    HistoryCacheSize=256M
+    TrendCacheSize=256M

@@ -1,0 +1,37 @@
+# TLS Certificates Configuration
+tls:
+  enabled: true
+  version: "TLS 1.3"  # Specify TLS version
+  certificates:
+    ca:
+      path: "/etc/ssl/certs/ca-cert.pem"
+      permissions: "0644"
+      required: true
+    server:
+      cert:
+        path: "/etc/ssl/certs/server-cert.pem"
+        permissions: "0644"
+        required: true
+      key:
+        path: "/etc/ssl/private/server-key.pem"
+        permissions: "0600"
+        required: true
+    client:
+      cert:
+        path: "/etc/ssl/certs/client-cert.pem"
+        permissions: "0644"
+        required: true
+      key:
+        path: "/etc/ssl/private/client-key.pem"
+        permissions: "0600"
+        required: true
+  validation:
+    verify_peer: true
+    verify_host: true
+  rotation:
+    enabled: true
+    auto_renewal: true
+    renewal_before_expiry: "30d"
+  monitoring:
+    enabled: true
+    alert_expiry_threshold: "14d"

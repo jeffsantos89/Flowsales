@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+data:
+  alertmanager.yml: |
+    global:
+      resolve_timeout: 5m
+      slack_api_url: https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK
+
+    route:
+      group_by: ['alertname']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 3h
+      receiver: slack-notifications
+      routes:
+        - match:
+            severity: critical
+          receiver: critical-slack-notifications
+        - match:
+            severity: warning
+          receiver: warning-slack-notifications
+
+    receivers:
+      - name: slack-notifications
+        slack_configs:
+          - send_resolved: true
+            channel: '#alerts'
+            api_url: https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK
+
+      - name: critical-slack-notifications
+        slack_configs:
+          - send_resolved: true
+            channel: '#critical-alerts'
+            api_url: https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK
+
+      - name: warning-slack-notifications
+        slack_configs:
+          - send_resolved: true
+            channel: '#warning-alerts'
+            api_url: https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK

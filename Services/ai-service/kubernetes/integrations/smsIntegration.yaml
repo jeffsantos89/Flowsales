@@ -1,0 +1,127 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sms-integration-config
+  namespace: ai
+data:
+  SMS_API_URL: https://api.twilio.com
+  KAFKA_BROKER: kafka-broker:9092
+  SMS_TOPIC: sms_notifications
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: sms-integration-secrets
+  namespace: ai
+type: Opaque
+data:
+  SMS_API_KEY: your_twilio_api_key_base64
+  SMS_API_SECRET: your_twilio_api_secret_base64
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sms-integration-service
+  namespace: ai
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sms-integration
+  template:
+    metadata:
+      labels:
+        app: sms-integration
+    spec:
+      containers:
+        - name: sms-integration
+          image: your-registry/sms-integration:latest
+          envFrom:
+            - configMapRef:
+                name: sms-integration-config
+            - secretRef:
+                name: sms-integration-secrets
+          resources:
+            limits:
+              memory: "1Gi"
+              cpu: "1"
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+          ports:
+            - containerPort: 3000
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - sms-integration
+              topologyKey: "kubernetes.io/hostname"
+      tolerations:
+        - key: "key"
+          operator: "Equal"
+          value: "value"
+          effect: "NoSchedule"
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 3000
+        fsGroup: 2000
+---
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: sms-integration-hpa
+  namespace: ai
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: sms-integration-service
+  minReplicas: 3
+  maxReplicas: 15
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sms-integration-ingress
+  namespace: ai
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+    - host: sms-integration.yourdomain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sms-integration-service
+                port:
+                  number: 3000
+  tls:
+    - hosts:
+        - sms-integration.yourdomain.com
+      secretName: tls-secret

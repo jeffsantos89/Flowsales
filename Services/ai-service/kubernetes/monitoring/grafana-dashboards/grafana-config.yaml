@@ -1,0 +1,96 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: ai
+  labels:
+    app: grafana
+    environment: production
+    component: monitoring
+data:
+  grafana.ini: |
+    [analytics]
+    check_for_updates = true
+    reporting_enabled = false
+
+    [security]
+    disable_gravatar = true
+    cookie_secure = true
+    cookie_samesite = strict
+    allow_embedding = false
+
+    [auth]
+    disable_login_form = false
+    oauth_auto_login = false
+    disable_signout_menu = false
+
+    [log]
+    mode = console
+    level = warn
+    filters = alerting:debug
+
+    [paths]
+    data = /var/lib/grafana/data
+    logs = /var/log/grafana
+    plugins = /var/lib/grafana/plugins
+    provisioning = /etc/grafana/provisioning
+
+    [server]
+    root_url = %(protocol)s://%(domain)s/grafana
+    serve_from_sub_path = true
+    enable_gzip = true
+
+    [metrics]
+    enabled = true
+    basic_auth_username = metrics
+    interval_seconds = 10
+
+  datasources.yaml: |
+    apiVersion: 1
+    deleteDatasources:
+      - name: Prometheus
+        orgId: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        url: http://prometheus-service:9090
+        access: proxy
+        isDefault: true
+        jsonData:
+          timeInterval: 5s
+          queryTimeout: "30s"
+          httpMethod: "POST"
+          manageAlerts: true
+          exemplarTraceIdDestinations:
+            - name: trace_id
+              datasourceUid: tempo
+        secureJsonData:
+          httpHeaderValue1: "Bearer <token>"
+        editable: false
+        version: 1
+
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: 'default'
+        orgId: 1
+        folder: 'General'
+        folderUid: ''
+        type: file
+        disableDeletion: true
+        updateIntervalSeconds: 30
+        allowUiUpdates: false
+        options:
+          path: /var/lib/grafana/dashboards
+          foldersFromFilesStructure: true
+
+  plugins.yaml: |
+    plugins:
+      - grafana-piechart-panel
+      - grafana-clock-panel
+      - grafana-worldmap-panel
+      - grafana-kubernetes-app
+      - grafana-singlestat-panel
+      - alexanderzobnin-zabbix-app
+      - grafana-polystat-panel
+      - natel-plotly-panel

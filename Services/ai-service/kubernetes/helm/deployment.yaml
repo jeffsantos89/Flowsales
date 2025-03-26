@@ -1,0 +1,174 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-service
+  namespace: ai
+  labels:
+    app: ai-service
+    environment: production
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/port: '5000'
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ai-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  template:
+    metadata:
+      labels:
+        app: ai-service
+    spec:
+      serviceAccountName: ai-service
+      containers:
+        - name: ai-service
+          image: ai-service:latest
+          imagePullPolicy: Always
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1"
+          env:
+            - name: AI_MODEL_PATH
+              value: "/models/latest"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ai-db-secret
+                  key: url
+            - name: MARKETPLACE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: marketplace-secret
+                  key: api_key
+            - name: SOCIAL_MEDIA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: socialmedia-secret
+                  key: api_key
+            - name: WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-secret
+                  key: url
+          ports:
+            - containerPort: 5000
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 5000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: 5000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - name: model-volume
+              mountPath: /models
+      volumes:
+        - name: model-volume
+          persistentVolumeClaim:
+            claimName: model-pvc
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/e2e-az-name
+                    operator: In
+                    values:
+                      - e2e-az1
+                      - e2e-az2
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: security
+                    operator: In
+                    values:
+                      - S1
+              topologyKey: "kubernetes.io/hostname"
+      tolerations:
+        - key: "key1"
+          operator: "Equal"
+          value: "value1"
+          effect: "NoSchedule"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-service
+  namespace: ai
+spec:
+  type: LoadBalancer
+  selector:
+    app: ai-service
+  ports:
+    - port: 80
+      targetPort: 5000
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: ai
+  name: ai-service-secret-access
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["ai-db-secret", "marketplace-secret", "socialmedia-secret", "webhook-secret"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  namespace: ai
+  name: ai-service-secret-binding
+subjects:
+  - kind: ServiceAccount
+    name: ai-service
+    namespace: ai
+roleRef:
+  kind: Role
+  name: ai-service-secret-access
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ai-service-hpa
+  namespace: ai
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ai-service
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80

@@ -1,0 +1,161 @@
+{
+    "transactions": [
+        {
+            "id": "tx-2023-001",
+            "timestamp": "2023-11-14T10:30:25.000Z",
+            "type": "SALE",
+            "status": "COMPLETED",
+            "amount": {
+                "value": 1250.99,
+                "currency": "BRL",
+                "originalValue": 1250.99
+            },
+            "payment": {
+                "method": "CREDIT_CARD",
+                "installments": 3,
+                "card": {
+                    "lastDigits": "1234",
+                    "brand": "VISA",
+                    "holderName": "JOHN DOE",
+                    "expirationDate": "2025-12"
+                }
+            },
+            "customer": {
+                "id": "cus-001",
+                "name": "John Doe",
+                "email": "john.doe@example.com",
+                "document": {
+                    "type": "CPF",
+                    "number": "123.456.789-00"
+                }
+            },
+            "items": [
+                {
+                    "id": "prod-001",
+                    "name": "Smartphone X",
+                    "quantity": 1,
+                    "unitPrice": 1250.99,
+                    "discount": 0,
+                    "category": "Electronics"
+                }
+            ],
+            "metadata": {
+                "source": "web",
+                "ipAddress": "192.168.1.1",
+                "deviceId": "web-browser-123"
+            }
+        },
+        {
+            "id": "tx-2023-002",
+            "timestamp": "2023-11-14T11:45:30.000Z",
+            "type": "REFUND",
+            "status": "PENDING",
+            "amount": {
+                "value": 500.00,
+                "currency": "BRL",
+                "originalValue": 500.00
+            },
+            "payment": {
+                "method": "PIX",
+                "pixKey": "email@example.com",
+                "pixKeyType": "EMAIL"
+            },
+            "customer": {
+                "id": "cus-002",
+                "name": "Jane Smith",
+                "email": "jane.smith@example.com",
+                "document": {
+                    "type": "CNPJ",
+                    "number": "12.345.678/0001-90"
+                }
+            },
+            "items": [
+                {
+                    "id": "prod-002",
+                    "name": "Office Chair",
+                    "quantity": 2,
+                    "unitPrice": 250.00,
+                    "discount": 0,
+                    "category": "Furniture"
+                }
+            ],
+            "metadata": {
+                "source": "mobile_app",
+                "ipAddress": "192.168.1.2",
+                "deviceId": "ios-device-456"
+            }
+        },
+        {
+            "id": "tx-2023-003",
+            "timestamp": "2023-11-14T14:20:15.000Z",
+            "type": "SUBSCRIPTION",
+            "status": "ACTIVE",
+            "amount": {
+                "value": 99.90,
+                "currency": "BRL",
+                "originalValue": 99.90
+            },
+            "payment": {
+                "method": "DEBIT_CARD",
+                "recurrence": {
+                    "interval": "MONTHLY",
+                    "startDate": "2023-11-14",
+                    "nextBilling": "2023-12-14"
+                },
+                "card": {
+                    "lastDigits": "5678",
+                    "brand": "MASTERCARD",
+                    "holderName": "MARIA SILVA",
+                    "expirationDate": "2024-08"
+                }
+            },
+            "customer": {
+                "id": "cus-003",
+                "name": "Maria Silva",
+                "email": "maria.silva@example.com",
+                "document": {
+                    "type": "CPF",
+                    "number": "987.654.321-00"
+                },
+                "address": {
+                    "street": "Rua Principal",
+                    "number": "123",
+                    "complement": "Apto 45",
+                    "neighborhood": "Centro",
+                    "city": "São Paulo",
+                    "state": "SP",
+                    "zipCode": "01001-000",
+                    "country": "BR"
+                }
+            },
+            "items": [
+                {
+                    "id": "sub-001",
+                    "name": "Premium Plan",
+                    "quantity": 1,
+                    "unitPrice": 99.90,
+                    "discount": 0,
+                    "category": "Subscription"
+                }
+            ],
+            "metadata": {
+                "source": "api",
+                "ipAddress": "192.168.1.3",
+                "deviceId": "server-789"
+            }
+        }
+    ],
+    "pagination": {
+        "currentPage": 1,
+        "totalPages": 1,
+        "itemsPerPage": 10,
+        "totalItems": 3
+    },
+    "summary": {
+        "totalTransactions": 3,
+        "totalAmount": 1850.89,
+        "currency": "BRL",
+        "periodStart": "2023-11-14T00:00:00.000Z",
+        "periodEnd": "2023-11-14T23:59:59.999Z"
+    }
+}

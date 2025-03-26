@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  nginx-waf:
+    build: .
+    container_name: nginx-waf
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./logs:/var/log/nginx
+    networks:
+      - security-net
+
+networks:
+  security-net:
+    driver: bridge

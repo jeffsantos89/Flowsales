@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-shard-config
+data:
+  shards.json: |
+    [
+      {
+        "name": "shard1",
+        "host": "postgres-shard1",
+        "port": 5432,
+        "user": "$(POSTGRES_USER)",
+        "password": "$(POSTGRES_PASSWORD)",
+        "database": "flowsale_shard1"
+      },
+      {
+        "name": "shard2",
+        "host": "postgres-shard2",
+        "port": 5432,
+        "user": "$(POSTGRES_USER)",
+        "password": "$(POSTGRES_PASSWORD)",
+        "database": "flowsale_shard2"
+      }
+    ]
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-credentials
+type: Opaque
+data:
+  POSTGRES_USER: cG9zdGdyZXM= # base64 encoded value of 'postgres'
+  POSTGRES_PASSWORD: cG9zdGdyZXM= # base64 encoded value of 'postgres'
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-shard-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: postgres-shard
+  template:
+    metadata:
+      labels:
+        app: postgres-shard
+    spec:
+      containers:
+      - name: postgres-shard
+        image: postgres:latest
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: POSTGRES_PASSWORD
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+        ports:
+        - containerPort: 5432

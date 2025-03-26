@@ -1,0 +1,164 @@
+name: Enterprise Backup and Security
+
+on:
+  schedule:
+    - cron: "0 3 * * *"  # Daily at 3 AM
+  workflow_dispatch:      # Manual trigger option
+
+env:
+  POSTGRES_VERSION: '15'
+  BACKUP_BASE_DIR: '/backups'
+  RETENTION_DAYS: 30
+  ENCRYPTION_ALGORITHM: 'aes-256-gcm'  # More secure algorithm
+
+jobs:
+  database-backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120  # Prevent hanging jobs
+    
+    strategy:
+      matrix:
+        database: [flowsale]  # Expandable for multiple databases
+      fail-fast: false       # Continue with other DBs if one fails
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+
+      - name: Setup PostgreSQL
+        uses: postgres-actions/setup-postgres@v1
+        with:
+          postgres-version: ${{ env.POSTGRES_VERSION }}
+          username: ${{ secrets.DATABASE_USER }}
+          password: ${{ secrets.DATABASE_PASSWORD }}
+          database: ${{ matrix.database }}
+
+      - name: Install required tools
+        run: |
+          apt-get update && apt-get install -y \
+            postgresql-client \
+            openssl \
+            pigz \
+            curl
+
+      - name: Create backup directory structure
+        run: |
+          mkdir -p "${BACKUP_BASE_DIR}/$(date +\%Y)/$(date +\%m)"
+          chmod 700 "${BACKUP_BASE_DIR}"
+
+      - name: Perform Database Backup
+        id: backup
+        run: |
+          export BACKUP_DATE=$(date +\%Y\%m\%d_\%H\%M\%S)
+          export BACKUP_FILE="${BACKUP_BASE_DIR}/$(date +\%Y)/$(date +\%m)/${matrix.database}_${BACKUP_DATE}.sql.gz"
+          export ENCRYPTED_FILE="${BACKUP_FILE}.enc"
+          
+          # Backup with compression and progress
+          pg_dump -v -U ${{ secrets.DATABASE_USER }} \
+            -h localhost \
+            -F c \
+            ${matrix.database} | pigz -9 > "${BACKUP_FILE}"
+          
+          # Encrypt with modern algorithm and salt
+          openssl enc -${ENCRYPTION_ALGORITHM} \
+            -salt \
+            -in "${BACKUP_FILE}" \
+            -out "${ENCRYPTED_FILE}" \
+            -k ${{ secrets.ENCRYPTION_KEY }} \
+            -pbkdf2
+          
+          # Generate checksums
+          sha256sum "${ENCRYPTED_FILE}" > "${ENCRYPTED_FILE}.sha256"
+          
+          echo "::set-output name=backup_path::${ENCRYPTED_FILE}"
+        env:
+          PGPASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+          TZ: 'UTC'
+
+      - name: Upload to Cloud Storage
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.database }}-backup-${{ github.run_id }}
+          path: |
+            ${{ steps.backup.outputs.backup_path }}
+            ${{ steps.backup.outputs.backup_path }}.sha256
+          retention-days: ${{ env.RETENTION_DAYS }}
+
+      - name: Cleanup old backups
+        run: |
+          find ${BACKUP_BASE_DIR} -type f -mtime +${RETENTION_DAYS} -delete
+
+      - name: Notify on failure
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const message = `Backup failed for database: ${process.env.DATABASE}`;
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'Backup Failure Alert',
+              body: message
+            });
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup-ci-cd
+  namespace: backups
+  labels:
+    app: backup-system
+    component: ci-cd
+spec:
+  schedule: "0 2 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      template:
+        metadata:
+          labels:
+            app: backup-system
+            component: ci-cd
+        spec:
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+          containers:
+            - name: backup
+              image: alpine:3.18
+              resources:
+                requests:
+                  memory: "256Mi"
+                  cpu: "200m"
+                limits:
+                  memory: "512Mi"
+                  cpu: "500m"
+              command:
+                - /bin/sh
+                - -c
+              args:
+                - |
+                  set -e
+                  BACKUP_FILE="/backup/ci-cd-$(date +\%Y\%m\%d).tar.gz"
+                  tar -czf ${BACKUP_FILE} /etc/gitlab
+                  sha256sum ${BACKUP_FILE} > ${BACKUP_FILE}.sha256
+              volumeMounts:
+                - name: backup-volume
+                  mountPath: /backup
+                - name: gitlab-config
+                  mountPath: /etc/gitlab
+                  readOnly: true
+          volumes:
+            - name: backup-volume
+              persistentVolumeClaim:
+                claimName: backup-pvc
+            - name: gitlab-config
+              configMap:
+                name: gitlab-config
+          restartPolicy: OnFailure

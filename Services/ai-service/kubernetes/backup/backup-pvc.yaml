@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backup-pvc
+  namespace: database
+  labels:
+    app: database
+    tier: storage
+    environment: production
+  annotations:
+    kubernetes.io/description: "Backup storage for database"
+    backup.kubernetes.io/strategy: "daily"
+    monitoring.kubernetes.io/alert: "storage-capacity"
+spec:
+  storageClassName: premium-rwo # Use a premium storage class for better performance
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 200Gi
+    limits:
+      storage: 250Gi # Add storage limits
+  volumeMode: Filesystem
+  selector:
+    matchLabels:
+      type: ssd # Select specific storage type

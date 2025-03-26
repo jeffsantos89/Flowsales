@@ -1,0 +1,33 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: marketing-waf
+  annotations:
+    nginx.ingress.kubernetes.io/enable-modsecurity: "true"
+    nginx.ingress.kubernetes.io/modsecurity-snippet: |
+      SecRuleEngine On
+      SecRequestBodyAccess On
+      SecResponseBodyAccess On
+      SecRule ARGS "@rx \.\./" "id:1001,deny,status:403,msg:'Directory Traversal Attempt'"
+      SecRule ARGS "@rx select.*from" "id:1002,deny,status:403,msg:'SQL Injection Attempt'"
+      SecRule ARGS "@rx \bunion\b.*\bselect\b" "id:1003,deny,status:403,msg:'SQL Injection Attempt'"
+      SecRule REQUEST_HEADERS:User-Agent "@rx ^$" "id:1004,deny,status:403,msg:'Empty User-Agent Header'"
+    nginx.ingress.kubernetes.io/limit-rps: "10"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "3"
+    nginx.ingress.kubernetes.io/limit-connections: "20"
+spec:
+  tls:
+    - hosts:
+        - api.flowsale.com
+      secretName: tls-secret
+  rules:
+    - host: api.flowsale.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: marketing-service
+                port:
+                  number: 80

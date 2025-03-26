@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    "target": "es2020",                    // Versão mais recente do ECMAScript
+    "module": "commonjs",                  
+    "lib": ["es2022", "esnext", "dom"],   // Adiciona bibliotecas padrão
+    "strict": true,                        
+    "esModuleInterop": true,               
+    "skipLibCheck": true,                  
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist",                    
+    "rootDir": "./src",                    
+    "resolveJsonModule": true,             
+    "sourceMap": true,                     
+    "noImplicitAny": true,                 
+    "strictNullChecks": true,              
+    "noUnusedLocals": true,                
+    "noUnusedParameters": true,            
+    "moduleResolution": "node", // Or another appropriate value
+    "baseUrl": ".",                        
+    "allowJs": true,                       // Permite arquivos JavaScript
+    "checkJs": true,                       // Verifica erros em arquivos JS
+    "declaration": true,                   // Gera arquivos de declaração .d.ts
+    "declarationMap": true,                // Gera source maps para declarações
+    "removeComments": true,                // Remove comentários na compilação
+    "allowSyntheticDefaultImports": true,  // Permite imports default sintéticos
+    "experimentalDecorators": true,        // Suporte a decorators
+    "emitDecoratorMetadata": true,         // Emite metadata para decorators
+    "paths": {                             
+      "@controllers/*": ["src/controllers/*"],
+      "@services/*": ["src/services/*"],
+      "@config/*": ["src/config/*"],
+      "@utils/*": ["src/utils/*"],
+      "@repositories/*": ["src/repositories/*"],
+      "@middlewares/*": ["src/middlewares/*"],
+      "@entities/*": ["src/entities/*"],
+      "*": ["src/*"]
+    },
+    "types": ["node", "jest", "express", "cypress"]   // Adiciona tipos do Express
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}

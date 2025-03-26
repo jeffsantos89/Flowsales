@@ -1,0 +1,18 @@
+[
+    {
+      "amount": 100.50,
+      "status": "pending",
+      "affiliateEmail": "john.doe@example.com"
+    },
+    {
+      "amount": 200.00,
+      "status": "approved",
+      "affiliateEmail": "jane.smith@example.com"
+    },
+    {
+      "amount": 150.75,
+      "status": "rejected",
+      "affiliateEmail": "alice.brown@example.com"
+    }
+  ]
+  

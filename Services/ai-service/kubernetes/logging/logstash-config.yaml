@@ -1,0 +1,97 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-config
+  namespace: ai
+  labels:
+    app: logstash
+    environment: production
+data:
+  logstash.conf: |
+    input {
+      beats {
+        port => 5044
+        client_inactivity_timeout => 60
+        # Aumenta a segurança usando SSL
+        ssl => true
+        ssl_certificate => "/etc/logstash/certificates/logstash.crt"
+        ssl_key => "/etc/logstash/certificates/logstash.key"
+      }
+    }
+
+    filter {
+      # Adiciona informações do Kubernetes
+      kubernetes_metadata {
+        add_namespace => true
+        add_pod_labels => true
+        add_pod_annotations => true
+      }
+
+      grok {
+        match => { "message" => "%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} \[%{DATA:service}\] \[%{DATA:trace_id}\] %{GREEDYDATA:message}" }
+        tag_on_failure => ["_grokparsefailure"]
+        overwrite => ["message"]
+      }
+
+      date {
+        match => [ "timestamp", "ISO8601" ]
+        target => "@timestamp"
+        remove_field => ["timestamp"]
+      }
+
+      mutate {
+        add_field => {
+          "environment" => "${ENVIRONMENT:production}"
+          "app_version" => "${APP_VERSION}"
+        }
+        convert => {
+          "level" => "string"
+          "service" => "string"
+        }
+      }
+
+      # Remove campos desnecessários
+      prune {
+        whitelist_names => ["^message$", "^level$", "^@timestamp$", "^service$", "^trace_id$", "^environment$", "^app_version$", "^kubernetes$"]
+      }
+    }
+
+    output {
+      elasticsearch {
+        hosts => ["${ELASTICSEARCH_HOST:elasticsearch:9200}"]
+        index => "ai-service-logs-%{+YYYY.MM}"
+        user => "${ELASTICSEARCH_USER}"
+        password => "${ELASTICSEARCH_PASSWORD}"
+        template_name => "ai-service-logs"
+        template_overwrite => true
+        # Configurações de resiliência
+        retry_initial_interval => 2
+        retry_max_interval => 64
+        retry_on_conflict => 5
+        sniffing => true
+        healthcheck_enabled => true
+      }
+
+      # Alerta no Slack para erros críticos
+      if [level] == "ERROR" or [level] == "FATAL" {
+        slack {
+          url => "${SLACK_WEBHOOK_URL}"
+          format => "json"
+          retry_count => 3
+          fields => {
+            "title" => "Critical Error in AI Service"
+            "message" => "%{message}"
+            "service" => "%{service}"
+            "environment" => "%{environment}"
+            "trace_id" => "%{trace_id}"
+          }
+        }
+      }
+
+      # Log de debug em stdout
+      if [level] == "DEBUG" {
+        stdout {
+          codec => rubydebug { metadata => true }
+        }
+      }
+    }

@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zap-scan-config
+  namespace: security
+data:
+  target: "http://api.flowsale.com.br"
+  scanType: "baseline"
+  reportFile: "zap-report.html"
+  contextFile: "zap-context.context"
+  authentication: |
+    type: "form"
+    loginUrl: "http://api.flowsale.com.br/login"
+    username: "your-username"
+    password: "your-password"
+  scanPolicy: "API-scan-policy"
+  additionalOptions: "--auto --auth-detect"
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: zap-scan-job
+  namespace: security
+spec:
+  template:
+    spec:
+      containers:
+      - name: zap
+        image: owasp/zap2docker-stable
+        command: ["zap-baseline.py"]
+        args:
+          - "-t"
+          - "$(TARGET)"
+          - "-r"
+          - "$(REPORT_FILE)"
+          - "-c"
+          - "$(CONTEXT_FILE)"
+          - "-z"
+          - "$(ADDITIONAL_OPTIONS)"
+        env:
+        - name: TARGET
+          valueFrom:
+            configMapKeyRef:
+              name: zap-scan-config
+              key: target
+        - name: REPORT_FILE
+          valueFrom:
+            configMapKeyRef:
+              name: zap-scan-config
+              key: reportFile
+        - name: CONTEXT_FILE
+          valueFrom:
+            configMapKeyRef:
+              name: zap-scan-config
+              key: contextFile
+        - name: ADDITIONAL_OPTIONS
+          valueFrom:
+            configMapKeyRef:
+              name: zap-scan-config
+              key: additionalOptions
+      restartPolicy: Never
+  backoffLimit: 4

@@ -1,0 +1,52 @@
+apiVersion: v2
+name: ai-service
+description: "AI Service Helm Chart - Automação e Escalabilidade no Kubernetes"
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+kubeVersion: ">=1.21.0"
+home: "https://github.com/seu-usuario/ai-service"
+sources:
+  - "https://github.com/seu-usuario/ai-service"
+  - "https://ai-service.docs.example.com"
+maintainers:
+  - name: "Seu Nome"
+    email: "seuemail@exemplo.com"
+    url: "https://github.com/seu-usuario"
+
+dependencies:
+  - name: redis
+    version: "17.3.2"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: redis.enabled
+  - name: postgresql
+    version: "12.1.4"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled
+  - name: kafka
+    version: "12.0.1"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: kafka.enabled
+  - name: elasticsearch
+    version: "7.17.3"
+    repository: "https://helm.elastic.co"
+    condition: elasticsearch.enabled
+
+keywords:
+  - ai
+  - service
+  - kubernetes
+  - helm
+  - autoscaling
+  - machine-learning
+  - production-ready
+
+annotations:
+  artifacthub.io/description: "A Helm chart for deploying a scalable AI service."
+  artifacthub.io/license: "Apache-2.0"
+  artifacthub.io/ci: "true"
+  artifacthub.io/production: "true"
+  artifacthub.io/operator: "false"
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/helmVersion: "v3"
+icon: "https://raw.githubusercontent.com/seu-usuario/ai-service/main/icon.png"

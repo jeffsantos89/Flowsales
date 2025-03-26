@@ -1,0 +1,70 @@
+# Redis configuration for production environment
+
+# Memory Management
+maxmemory: 4gb
+maxmemory-policy: volatile-lru
+maxmemory-samples: 5
+
+# Persistence
+appendonly: "yes"
+appendfsync: everysec
+auto-aof-rewrite-percentage: 50
+auto-aof-rewrite-min-size: 64mb
+rdbcompression: yes
+rdbchecksum: yes
+
+# Performance Tuning
+timeout: 0
+tcp-keepalive: 60
+databases: 16
+client-output-buffer-limit:
+  normal: "0 0 0"
+  replica: "256mb 64mb 60"
+  pubsub: "32mb 8mb 60"
+
+# Security (now using Kubernetes Secret)
+requirepass: "$(REDIS_PASSWORD)"
+rename-command:
+  FLUSHALL: ""
+  FLUSHDB: ""
+  CONFIG: ""
+  SHUTDOWN: ""
+
+# Snapshotting
+save:
+  - "900 1"
+  - "300 10"
+  - "60 10000"
+
+# Replication
+replica-serve-stale-data: yes
+replica-read-only: yes
+repl-diskless-sync: yes
+repl-diskless-sync-delay: 5
+min-replicas-to-write: 1
+min-replicas-max-lag: 10
+
+# Logging
+loglevel: notice
+logfile: "/var/log/redis/redis.log"
+
+# Slow Log
+slowlog-log-slower-than: 10000
+slowlog-max-len: 128
+
+# Latency Monitoring
+latency-monitor-threshold: 100
+
+# Cluster Configuration
+cluster-enabled: yes
+cluster-config-file: nodes.conf
+cluster-node-timeout: 5000
+cluster-require-full-coverage: yes
+cluster-migration-barrier: 1
+
+# Notifications
+notify-keyspace-events: "Ex"
+
+# Advanced Networking
+tcp-backlog: 511
+protected-mode: yes

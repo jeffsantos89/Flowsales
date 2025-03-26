@@ -1,0 +1,143 @@
+{
+    "marketplace_orders": [
+        {
+            "order_id": "ORD-2023-001",
+            "timestamp": "2023-11-14T10:30:25.000Z",
+            "status": "COMPLETED",
+            "platform": {
+                "name": "Amazon",
+                "seller_id": "AMZN123456",
+                "store_name": "TechGadgets Plus"
+            },
+            "customer": {
+                "id": "CUST001",
+                "name": "John Doe",
+                "email": "john.doe@email.com",
+                "phone": "+1-555-0123",
+                "address": {
+                    "street": "123 Main St",
+                    "city": "San Francisco",
+                    "state": "CA",
+                    "country": "USA",
+                    "postal_code": "94105",
+                    "delivery_instructions": "Leave at front door"
+                }
+            },
+            "items": [
+                {
+                    "item_id": "SKU123",
+                    "product_name": "Wireless Headphones",
+                    "quantity": 2,
+                    "unit_price": 99.99,
+                    "discount": 10.00,
+                    "tax": 15.99,
+                    "sku": "WH-BT-001",
+                    "variant": "Black",
+                    "weight": {
+                        "value": 0.3,
+                        "unit": "kg"
+                    }
+                }
+            ],
+            "payment": {
+                "method": "CREDIT_CARD",
+                "transaction_id": "TRX789012",
+                "currency": "USD",
+                "subtotal": 189.98,
+                "shipping_cost": 12.99,
+                "tax_total": 15.99,
+                "discount_total": 10.00,
+                "total": 208.96,
+                "payment_status": "APPROVED"
+            },
+            "shipping": {
+                "carrier": "FedEx",
+                "method": "Express",
+                "tracking_number": "FDX123456789",
+                "estimated_delivery": "2023-11-16T17:00:00.000Z",
+                "shipping_status": "IN_TRANSIT"
+            },
+            "metadata": {
+                "source_ip": "192.168.1.1",
+                "device_type": "mobile",
+                "user_agent": "Mozilla/5.0",
+                "tags": ["high_value", "priority"]
+            }
+        },
+        {
+            "order_id": "ORD-2023-002",
+            "timestamp": "2023-11-14T11:45:30.000Z",
+            "status": "PROCESSING",
+            "platform": {
+                "name": "eBay",
+                "seller_id": "EBAY789012",
+                "store_name": "Electronics Hub"
+            },
+            "customer": {
+                "id": "CUST002",
+                "name": "Jane Smith",
+                "email": "jane.smith@email.com",
+                "phone": "+1-555-0124",
+                "address": {
+                    "street": "456 Oak Avenue",
+                    "city": "New York",
+                    "state": "NY",
+                    "country": "USA",
+                    "postal_code": "10001",
+                    "delivery_instructions": "Ring doorbell"
+                }
+            },
+            "items": [
+                {
+                    "item_id": "SKU456",
+                    "product_name": "Smart Watch",
+                    "quantity": 1,
+                    "unit_price": 299.99,
+                    "discount": 0.00,
+                    "tax": 27.00,
+                    "sku": "SW-GT-002",
+                    "variant": "Silver",
+                    "weight": {
+                        "value": 0.15,
+                        "unit": "kg"
+                    }
+                }
+            ],
+            "payment": {
+                "method": "PAYPAL",
+                "transaction_id": "PP123456789",
+                "currency": "USD",
+                "subtotal": 299.99,
+                "shipping_cost": 15.99,
+                "tax_total": 27.00,
+                "discount_total": 0.00,
+                "total": 342.98,
+                "payment_status": "PENDING"
+            },
+            "shipping": {
+                "carrier": "UPS",
+                "method": "Ground",
+                "tracking_number": "UPS987654321",
+                "estimated_delivery": "2023-11-17T17:00:00.000Z",
+                "shipping_status": "PENDING"
+            },
+            "metadata": {
+                "source_ip": "192.168.1.2",
+                "device_type": "desktop",
+                "user_agent": "Chrome/96.0.4664.110",
+                "tags": ["standard"]
+            }
+        }
+    ],
+    "pagination": {
+        "total_items": 2,
+        "page": 1,
+        "items_per_page": 50,
+        "total_pages": 1
+    },
+    "meta": {
+        "api_version": "2.0.0",
+        "timestamp": "2023-11-14T12:00:00.000Z",
+        "environment": "production"
+    }
+}

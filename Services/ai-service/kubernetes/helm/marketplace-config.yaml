@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: marketplace-config
+  namespace: ai
+data:
+  amazon-api-url: "https://api.amazon.com"
+  shopee-api-url: "https://partner.shopeemobile.com/api"
+  mercadolivre-api-url: "https://api.mercadolibre.com"
+  env: "production"
+  log-level: "INFO"
+  retry-attempts: "3"
+  timeout-seconds: "30"
+  rate-limit: "100"
+  cache-ttl: "3600"
+  monitoring-enabled: "true"
+  metrics-endpoint: "/metrics"
+  health-check-path: "/health"
+  max-connections: "1000"
+  connection-timeout: "5"
+  idle-timeout: "60"
+  max-request-size: "10MB"
+  cors-allowed-origins: "*"
+  api-version: "v1"
+  enable-ssl: "true"
+  ssl-protocol: "TLS"

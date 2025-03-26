@@ -1,0 +1,36 @@
+jwt:
+  secret_key: ${JWT_SECRET}
+  public_key: ${JWT_PUBLIC_KEY}
+  private_key: ${JWT_PRIVATE_KEY}
+  token:
+    access:
+      expiration: 3600  # 1 hour in seconds
+      algorithm: RS256
+      issuer: https://auth.flowsale.com
+      audience: https://api.flowsale.com
+      jti_size: 32  # JWT ID length for unique token identification
+    refresh:
+      expiration: 86400  # 24 hours in seconds
+      reuse_interval: 10  # Prevent token reuse within 10 seconds
+  security:
+    enable_blacklist: true
+    max_tokens_per_user: 5
+    rate_limit:
+      max_attempts: 10
+      window_seconds: 300
+  claims:
+    required:
+      - sub
+      - iat
+      - exp
+    optional:
+      - name
+      - email
+      - roles
+  cors:
+    allowed_origins:
+      - https://flowsale.com
+      - https://api.flowsale.com
+    allowed_methods:
+      - GET
+      - POST

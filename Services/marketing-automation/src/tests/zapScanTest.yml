@@ -1,0 +1,4 @@
+config:
+  target: "http://api.flowsale.com.br"
+  scanType: "baseline"
+  reportFile: "zap-report.html"

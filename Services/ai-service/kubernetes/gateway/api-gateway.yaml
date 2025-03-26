@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kong-gateway
+  namespace: gateway
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: kong-gateway
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: kong-gateway
+    spec:
+      securityContext:
+        fsGroup: 2000
+      containers:
+        - name: kong
+          image: kong:3.1.0
+          env:
+            - name: KONG_DATABASE
+              value: "off"
+            - name: KONG_PROXY_ACCESS_LOG
+              value: "/var/log/kong/access.log"
+            - name: KONG_ADMIN_ACCESS_LOG
+              value: "/var/log/kong/admin_access.log"
+            - name: KONG_PROXY_ERROR_LOG
+              value: "/var/log/kong/error.log"
+            - name: KONG_ADMIN_ERROR_LOG
+              value: "/var/log/kong/admin_error.log"
+            - name: KONG_ADMIN_LISTEN
+              value: "127.0.0.1:8001"
+          ports:
+            - containerPort: 8000
+            - containerPort: 8001
+            - containerPort: 8443
+            - containerPort: 8444
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1"
+          livenessProbe:
+            httpGet:
+              path: /status
+              port: 8001
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /status
+              port: 8001
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          volumeMounts:
+            - name: kong-logs
+              mountPath: /var/log/kong
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 3000
+            allowPrivilegeEscalation: false
+      volumes:
+        - name: kong-logs
+          persistentVolumeClaim:
+            claimName: kong-logs-pvc
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/e2e-az-name
+                    operator: In
+                    values:
+                      - e2e-az1
+                      - e2e-az2
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - kong-gateway
+              topologyKey: "kubernetes.io/hostname"
+      tolerations: 
+        - key: "key1"
+          operator: "Equal"
+          value: "value1"
+          effect: "NoSchedule"

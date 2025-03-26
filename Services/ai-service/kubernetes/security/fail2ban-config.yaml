@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fail2ban
+  namespace: security
+  labels:
+    app: fail2ban
+    component: security
+spec:
+  selector:
+    matchLabels:
+      app: fail2ban
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: fail2ban
+      annotations:
+        seccomp.security.alpha.kubernetes.io/pod: runtime/default
+    spec:
+      serviceAccountName: fail2ban-sa
+      priorityClassName: system-node-critical
+      hostNetwork: true
+      containers:
+        - name: fail2ban
+          image: fail2ban/fail2ban:1.0.2  # Specify a fixed version instead of latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+            runAsUser: 0
+            capabilities:
+              add: ["NET_ADMIN", "NET_RAW"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          volumeMounts:
+            - name: logs
+              mountPath: /var/log
+              readOnly: true
+            - name: config
+              mountPath: /etc/fail2ban
+            - name: iptables
+              mountPath: /etc/iptables
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - fail2ban-client ping
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - fail2ban-client ping
+            initialDelaySeconds: 10
+            periodSeconds: 10
+      volumes:
+        - name: logs
+          hostPath:
+            path: /var/log
+            type: Directory
+        - name: config
+          configMap:
+            name: fail2ban-config
+        - name: iptables
+          hostPath:
+            path: /etc/iptables
+            type: DirectoryOrCreate
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/control-plane
+          effect: NoSchedule
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fail2ban-sa
+  namespace: security

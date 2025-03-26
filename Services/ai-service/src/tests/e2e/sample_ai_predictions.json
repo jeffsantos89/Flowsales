@@ -1,0 +1,106 @@
+{
+    "metadata": {
+        "version": "2.0.0",
+        "generated_at": "2023-11-14T10:00:00Z",
+        "environment": "production",
+        "model_info": {
+            "name": "advanced_ai_model_v3",
+            "version": "3.2.1",
+            "last_trained": "2023-11-01T00:00:00Z",
+            "accuracy_metrics": {
+                "precision": 0.95,
+                "recall": 0.92,
+                "f1_score": 0.93
+            }
+        }
+    },
+    "predictions": [
+        {
+            "id": "pred_001",
+            "timestamp": "2023-11-14T10:01:23Z",
+            "input_data": {
+                "text": "Customer feedback analysis",
+                "language": "en-US",
+                "context": "e-commerce"
+            },
+            "prediction_results": {
+                "sentiment": {
+                    "score": 0.87,
+                    "label": "positive",
+                    "confidence": 0.92
+                },
+                "intent": {
+                    "primary": "product_review",
+                    "secondary": ["feedback", "recommendation"],
+                    "confidence": 0.89
+                },
+                "categories": [
+                    {
+                        "name": "customer_service",
+                        "probability": 0.85
+                    },
+                    {
+                        "name": "product_quality",
+                        "probability": 0.78
+                    }
+                ]
+            },
+            "processing_stats": {
+                "duration_ms": 150,
+                "tokens_processed": 42,
+                "memory_used": "64MB"
+            }
+        },
+        {
+            "id": "pred_002",
+            "timestamp": "2023-11-14T10:02:45Z",
+            "input_data": {
+                "text": "Sales forecast analysis",
+                "language": "en-US",
+                "context": "business_intelligence"
+            },
+            "prediction_results": {
+                "forecast": {
+                    "trend": "upward",
+                    "confidence": 0.88,
+                    "predicted_values": [
+                        {
+                            "period": "2023-Q4",
+                            "value": 1250000,
+                            "margin_of_error": 50000
+                        },
+                        {
+                            "period": "2024-Q1",
+                            "value": 1400000,
+                            "margin_of_error": 75000
+                        }
+                    ]
+                },
+                "risk_assessment": {
+                    "level": "low",
+                    "score": 0.15,
+                    "factors": ["market_stability", "historical_performance"]
+                }
+            },
+            "processing_stats": {
+                "duration_ms": 280,
+                "tokens_processed": 156,
+                "memory_used": "128MB"
+            }
+        }
+    ],
+    "error_handling": {
+        "retry_attempts": 3,
+        "timeout_ms": 5000,
+        "fallback_strategy": "last_successful_prediction"
+    },
+    "rate_limiting": {
+        "max_requests_per_minute": 100,
+        "concurrent_requests": 10
+    },
+    "caching": {
+        "enabled": true,
+        "ttl_seconds": 3600,
+        "strategy": "lru"
+    }
+}

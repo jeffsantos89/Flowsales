@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mtls-cert
+  namespace: marketing-namespace
+type: kubernetes.io/tls
+data:
+  tls.crt: <SEU_CERTIFICADO_BASE64>
+  tls.key: <SUA_CHAVE_PRIVADA_BASE64>
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: marketing-ingress-mtls
+  namespace: marketing-namespace
+  annotations:
+    nginx.ingress.kubernetes.io/auth-tls-verify-client: "on"
+    nginx.ingress.kubernetes.io/auth-tls-secret: "marketing-namespace/mtls-cert"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  tls:
+    - hosts:
+        - api.sellflux.com.br
+      secretName: mtls-cert
+  rules:
+    - host: api.sellflux.com.br
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: marketing-service
+                port:
+                  number: 80

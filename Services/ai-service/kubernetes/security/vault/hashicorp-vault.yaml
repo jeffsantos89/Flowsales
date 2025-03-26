@@ -1,0 +1,60 @@
+vault:
+  # Main configuration
+  address: https://vault.flowsale.com
+  token: ${VAULT_TOKEN}
+  timeout: 30s
+  maxRetries: 3
+  
+  # TLS/SSL Configuration
+  tls:
+    enabled: true
+    verify: true
+    caPath: /path/to/ca.pem
+    
+  # High Availability settings
+  ha:
+    enabled: true
+    retryInterval: 5s
+    maxRetries: 5
+
+  # Secrets configuration
+  secrets:
+    database:
+      path: secret/data/ai-service/database
+      version: 2
+      keys:
+        - username
+        - password
+      ttl: 3600  # Time to live in seconds
+      rotation:
+        enabled: true
+        interval: 24h
+
+    api_keys:
+      path: secret/data/ai-service/api_keys
+      version: 2
+      keys:
+        - openai_key
+        - aws_secret
+      ttl: 1800
+      rotation:
+        enabled: true
+        interval: 12h
+
+  # Audit logging
+  audit:
+    enabled: true
+    path: /var/log/vault
+    type: file
+    
+  # Rate limiting
+  rateLimit:
+    enabled: true
+    requestsPerSecond: 50
+    burstSize: 100
+
+  # Monitoring
+  metrics:
+    enabled: true
+    prometheusEnabled: true
+    statsdAddress: "localhost:8125"

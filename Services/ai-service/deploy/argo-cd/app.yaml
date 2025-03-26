@@ -1,0 +1,78 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ai-service
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/refresh: always
+    argocd.argoproj.io/compare-options: IgnoreExtraneous
+    argocd.argoproj.io/sync-options: Prune=false,Validate=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/seu-usuario/ai-service.git
+    targetRevision: main
+    path: deploy/helm
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-prod.yaml
+        - values-${ENV}.yaml  # Adaptação dinâmica ao ambiente
+      parameters:
+        - name: replicaCount
+          value: "3"
+        - name: image.tag
+          value: "{{ .Values.image.tag | default .Chart.AppVersion }}"
+        - name: resources.limits.cpu
+          value: "1000m"
+        - name: resources.limits.memory
+          value: "2Gi"
+        - name: resources.requests.cpu
+          value: "500m"
+        - name: resources.requests.memory
+          value: "1Gi"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ai-service
+  syncPolicy:
+    automated:
+      prune: false  # Evita remoção de recursos inesperadamente
+      selfHeal: true  # Corrige diferenças automaticamente
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+      - ValidateSignatures=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
+        - /spec/template/spec/containers/0/resources
+    - group: networking.k8s.io
+      kind: Ingress
+      jsonPointers:
+        - /metadata/annotations
+    - group: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      jsonPointers:
+        - /spec/minReplicas
+        - /spec/maxReplicas
+  info:
+    - name: "Environment"
+      value: "Production"
+    - name: "Team"
+      value: "AI Team"
+  revisionHistoryLimit: 10

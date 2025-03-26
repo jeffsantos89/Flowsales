@@ -1,0 +1,73 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: backup-alert-rules
+  namespace: monitoring
+  labels:
+    app: database-backup
+    team: infrastructure
+spec:
+  groups:
+    - name: backup-alerts
+      rules:
+        - alert: BackupJobFailed
+          expr: |
+            kube_job_failed{job="backup"} > 0 or
+            kube_job_status_failed{job="backup"} > 0
+          for: 5m
+          labels:
+            severity: critical
+            category: backup
+            team: dba
+          annotations:
+            summary: "Falha Crítica no Backup do Banco de Dados"
+            description: "O backup falhou. Job: {{ $labels.job_name }} no namespace {{ $labels.namespace }}"
+            runbook_url: "https://wiki.interno/backup-recuperacao"
+
+        - alert: BackupJobDelayed
+          expr: time() - kube_job_start_time_seconds{job="backup"} > 7200
+          for: 15m
+          labels:
+            severity: warning
+            category: backup
+            team: dba
+          annotations:
+            summary: "Backup Excedeu Tempo Limite"
+            description: "Backup em execução por mais de 2h. Job: {{ $labels.job_name }}"
+
+        - alert: BackupJobMissing
+          expr: absent(kube_job_status_active{job="backup"}) == 1
+          for: 24h
+          labels:
+            severity: critical
+            category: backup
+            team: dba
+          annotations:
+            summary: "Backup Não Iniciado"
+            description: "Nenhum job de backup detectado nas últimas 24h"
+
+        - alert: BackupStorageUsageHigh
+          expr: |
+            (
+              container_fs_usage_bytes{container="backup-storage"} /
+              container_fs_limit_bytes{container="backup-storage"}
+            ) * 100 > 85
+          for: 10m
+          labels:
+            severity: warning
+            category: storage
+            team: infrastructure
+          annotations:
+            summary: "Armazenamento de Backup Crítico"
+            description: "Uso de armazenamento > 85%. Volume: {{ $labels.volume }}"
+
+        - alert: BackupSizeTooSmall
+          expr: backup_size_bytes < 0.5 * avg_over_time(backup_size_bytes[7d])
+          for: 5m
+          labels:
+            severity: warning
+            category: backup
+            team: dba
+          annotations:
+            summary: "Tamanho do Backup Anormal"
+            description: "Backup atual 50% menor que a média semanal"

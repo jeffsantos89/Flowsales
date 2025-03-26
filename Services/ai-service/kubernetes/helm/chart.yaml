@@ -1,0 +1,150 @@
+apiVersion: v2
+name: ai-service
+description: AI Service Helm Chart
+type: application
+version: 1.3.0
+appVersion: 1.1.0
+
+maintainers:
+  - name: Jeferson
+    email: jeferson@example.com
+
+sources:
+  - https://github.com/your-repo/ai-service
+
+keywords:
+  - ai
+  - machine learning
+  - service
+
+home: https://your-website.com
+icon: https://your-website.com/icon.png
+
+dependencies:
+  - name: redis
+    version: 14.8.8
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled
+  - name: kafka
+    version: 22.1.0
+    repository: https://charts.bitnami.com/bitnami
+    condition: kafka.enabled
+
+annotations:
+  category: "Machine Learning"
+
+values:
+  replicaCount: 3
+  image:
+    repository: your-repo/ai-service
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+      - host: ai-service.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - hosts:
+          - ai-service.example.com
+        secretName: ai-service-tls
+  resources:
+    limits:
+      cpu: 1
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - ai-service
+          topologyKey: "kubernetes.io/hostname"
+  integrations:
+    marketplace:
+      enabled: true
+      services:
+        - name: amazon
+        - name: shopee
+        - name: mercado_livre
+    social:
+      enabled: true
+      services:
+        - name: facebook
+        - name: instagram
+        - name: linkedin
+  monitoring:
+    enablePrometheus: true
+    enableGrafana: true
+  security:
+    enableRateLimit: true
+    enableWAF: true
+    enableOauth: true
+
+hooks:
+  pre-install:
+    - exec:
+        command: "echo"
+        args: ["Pre-install hook"]
+  post-install:
+    - exec:
+        command: "echo"
+        args: ["Post-install hook"]
+
+securityContext:
+  enabled: true
+  runAsUser: 1000
+  runAsGroup: 3000
+  fsGroup: 2000
+
+podSecurityContext:
+  enabled: true
+  runAsUser: 1000
+  runAsGroup: 3000
+  fsGroup: 2000
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 10
+
+logging:
+  level: info
+  format: json
+
+environment:
+  - name: ENV
+    value: production
+  - name: LOG_LEVEL
+    value: info
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80

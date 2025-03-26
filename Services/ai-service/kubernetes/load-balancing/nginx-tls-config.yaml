@@ -1,0 +1,141 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: nginx-tls-config
+data:
+    nginx.conf: |
+        worker_processes auto;
+        worker_rlimit_nofile 65535;
+
+        events {
+                worker_connections 4096;
+                multi_accept on;
+                use epoll;
+        }
+
+        http {
+                include /etc/nginx/mime.types;
+                default_type application/octet-stream;
+
+                # Optimization
+                sendfile on;
+                tcp_nopush on;
+                tcp_nodelay on;
+                keepalive_timeout 65;
+                keepalive_requests 100;
+                reset_timedout_connection on;
+                client_body_timeout 10;
+                send_timeout 2;
+                client_max_body_size 10m;
+
+                # Buffering
+                client_body_buffer_size 128k;
+                client_header_buffer_size 1k;
+                large_client_header_buffers 4 4k;
+                proxy_buffer_size 4k;
+                proxy_buffers 4 32k;
+                proxy_busy_buffers_size 64k;
+
+                # Gzip compression
+                gzip on;
+                gzip_vary on;
+                gzip_proxied any;
+                gzip_comp_level 6;
+                gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+
+                # Security headers
+                add_header X-Frame-Options "SAMEORIGIN";
+                add_header X-XSS-Protection "1; mode=block";
+                add_header X-Content-Type-Options "nosniff";
+                add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+                # Load balancing
+                upstream backend {
+                        least_conn;  # Least connections algorithm
+                        server backend1.example.com max_fails=3 fail_timeout=30s;
+                        server backend2.example.com max_fails=3 fail_timeout=30s;
+                        keepalive 32;
+                }
+
+                # SSL configuration
+                ssl_session_cache shared:SSL:50m;
+                ssl_session_timeout 1d;
+                ssl_session_tickets off;
+                ssl_prefer_server_ciphers on;
+
+                server {
+                        listen 443 ssl http2;
+                        server_name example.com;
+
+                        # SSL configuration
+                        ssl_certificate /etc/nginx/certs/tls.crt;
+                        ssl_certificate_key /etc/nginx/certs/tls.key;
+                        ssl_protocols TLSv1.2 TLSv1.3;
+                        ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
+
+                        # Security
+                        location = /favicon.ico { access_log off; log_not_found off; }
+                        location = /robots.txt  { access_log off; log_not_found off; }
+
+                        location / {
+                                proxy_pass http://backend;
+                                proxy_http_version 1.1;
+                                proxy_set_header Upgrade $http_upgrade;
+                                proxy_set_header Connection 'upgrade';
+                                proxy_set_header Host $host;
+                                proxy_set_header X-Real-IP $remote_addr;
+                                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                                proxy_set_header X-Forwarded-Proto $scheme;
+                                proxy_set_header X-Forwarded-Host $host;
+                                proxy_buffer_size 128k;
+                                proxy_buffers 4 256k;
+                                proxy_busy_buffers_size 256k;
+                                proxy_read_timeout 90s;
+                                proxy_connect_timeout 90s;
+                                proxy_send_timeout 90s;
+                                proxy_redirect off;
+                        }
+
+                        # Error handling
+                        error_page 404 /404.html;
+                        error_page 500 502 503 504 /50x.html;
+
+                        # Logging
+                        access_log /var/log/nginx/access.log combined buffer=512k flush=1m;
+                        error_log /var/log/nginx/error.log warn;
+                }
+        }
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+    name: ai-ingress
+    namespace: ai
+    annotations:
+        kubernetes.io/ingress.class: "nginx"
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+        nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+        nginx.ingress.kubernetes.io/proxy-connect-timeout: "90"
+        nginx.ingress.kubernetes.io/proxy-read-timeout: "90"
+        nginx.ingress.kubernetes.io/proxy-send-timeout: "90"
+        nginx.ingress.kubernetes.io/ssl-redirect: "true"
+        nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+        nginx.ingress.kubernetes.io/rewrite-target: /
+        nginx.ingress.kubernetes.io/enable-cors: "true"
+spec:
+    tls:
+        - hosts:
+            - ai-service.example.com
+          secretName: ai-service-tls
+    rules:
+      - host: ai-service.example.com
+        http:
+          paths:
+            - path: /
+              pathType: Prefix
+              backend:
+                service:
+                  name: nginx-service
+                  port:
+                    number: 443
