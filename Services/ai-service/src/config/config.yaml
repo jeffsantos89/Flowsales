@@ -1,0 +1,82 @@
+---
+# Production-ready configuration file
+# Version: 2.0.0
+# Last updated: 2024
+
+app:
+  name: flowsales-ai-service
+  version: 1.0.0
+  environments:
+    development:
+      port: 8000
+      debug: true
+    staging:
+      port: 8001
+      debug: false
+    production:
+      port: 8080
+      debug: false
+  timezone: UTC
+  cors:
+    enabled: true
+    allowed_origins: ["*"]
+    allowed_methods: ["GET", "POST", "PUT", "DELETE"]
+
+logging:
+  level: ${LOG_LEVEL:-INFO}
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    file:
+      enabled: true
+      path: /var/log/flowsales
+      max_size_mb: 100
+      backup_count: 10
+    console:
+      enabled: true
+    sentry:
+      enabled: true
+      dsn: ${SENTRY_DSN}
+
+monitoring:
+  prometheus:
+    enabled: true
+    path: /metrics
+    scrape_interval: 15s
+  health_check:
+    enabled: true
+    path: /health
+    timeout: 5s
+
+security:
+  rate_limiter:
+    enabled: true
+    max_requests: ${RATE_LIMIT_MAX:-100}
+    window_seconds: ${RATE_LIMIT_WINDOW:-60}
+    strategy: sliding_window
+  api_key:
+    required: true
+    header_name: X-API-Key
+
+resilience:
+  retry:
+    max_attempts: 3
+    delay_seconds: 2
+    exponential_backoff: true
+  circuit_breaker:
+    enabled: true
+    failure_threshold: 5
+    reset_timeout: 30s
+
+cache:
+  enabled: true
+  type: redis
+  ttl: 3600
+  redis:
+    host: ${REDIS_HOST:-localhost}
+    port: ${REDIS_PORT:-6379}
+    db: 0
+
+telemetry:
+  tracing:
+    enabled: true
+    sampling_rate: 0.1

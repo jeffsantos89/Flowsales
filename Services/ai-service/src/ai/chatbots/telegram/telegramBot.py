@@ -17,7 +17,7 @@ from telegram.ext import (
     filters,
     ContextTypes
 )
-
+from src.clients.telegram_client import TelegramClient
 from ai.nlp.huggingface_processor import HuggingFaceProcessor
 from ai.database.sales import SalesDatabase
 from security.ratelimiter import RateLimiter

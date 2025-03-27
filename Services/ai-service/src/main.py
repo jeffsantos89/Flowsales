@@ -12,12 +12,52 @@ import asyncio
 from typing import Dict, Any
 from contextlib import asynccontextmanager
 from datetime import datetime
+from fastapi import FastAPI
+from src.routes import whatsapp, telegram_handler, health
+from src.core.logger import setup_logger
+from src.monitoring.metrics import setup_metrics
+from prometheus_fastapi_instrumentator import Instrumentator
+from src.factories.bot_factory import init_bots  # << IMPORTANTE
+from src.routes import facebook  # importar o novo módulo
+from src.routes import (
+    health,
+    whatsapp,
+    telegram,
+    facebook,
+    instagram
+)
+
+app = FastAPI(title="Flowsales AI Service")
+app.include_router(health.router)
+app.include_router(whatsapp.router)
+app.include_router(telegram.router)
+app.include_router(facebook.router)
+app.include_router(instagram.router)
+
+# Observabilidade
+setup_logger()
+setup_metrics(app)
+Instrumentator().instrument(app).expose(app)
+
+# Inicializa bots com clients injetados
+init_bots()
+
+# Rotas
+app.include_router(health.router)
+app.include_router(whatsapp.router)
+app.include_router(telegram_handler.router)
+
+@app.get("/")
+def root():
+    return {"status": "running"}
+
+# Para executar localmente: uvicorn src.main:app --reload
 
 # Internal imports
 from routes import api_router
 from core.config import Settings
-from core.logging_config import setup_logging
-from core.middleware import (
+from logging import setup_logging
+from middleware import (
     RequestValidatorMiddleware,
     RateLimiterMiddleware,
     AuthenticationMiddleware,
@@ -25,11 +65,11 @@ from core.middleware import (
     CompressionMiddleware
 )
 from core.security import setup_security
-from core.monitoring import setup_metrics, setup_tracing
-from core.database import init_db
-from core.cache import Cache
-from core.events import startup_handler, shutdown_handler
-from utils.constants import API_PREFIX, API_TITLE, API_VERSION
+from monitoring import setup_metrics, setup_tracing
+from ai.database import init_db
+from cache import Cache
+from events import startup_handler, shutdown_handler
+from src.constants import API_PREFIX, API_TITLE, API_VERSION
 
 class ApplicationState:
     """Global application state management"""

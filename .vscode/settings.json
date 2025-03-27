@@ -1,0 +1,6 @@
+{
+    "python.analysis.extraPaths": [
+        "./Services/ai-service/src/logs",
+        "./Services/ai-service/src/routes"
+    ]
+}

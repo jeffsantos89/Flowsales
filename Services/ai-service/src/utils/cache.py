@@ -1,95 +1,136 @@
 import os
-import pytest
-from unittest.mock import patch, MagicMock
-from src.utils.cache import CacheManager
+import time
 import redis
+import logging
+from typing import Any, Callable, Dict, Optional, Tuple, Union
+from functools import wraps
+from abc import ABC, abstractmethod
 
-class TestEnvironmentVariables:
-    @pytest.fixture(autouse=True)
-    def setup_and_teardown(self):
-        """Setup and teardown for each test"""
-        self.original_env = dict(os.environ)
-        yield
-        os.environ.clear()
-        os.environ.update(self.original_env)
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-    @pytest.fixture
-    def mock_redis(self):
-        """Fixture to mock Redis client"""
-        with patch('redis.Redis') as mock:
-            mock_instance = MagicMock()
-            mock.return_value = mock_instance
-            yield mock_instance
+class CacheBackend(ABC):
+    @abstractmethod
+    def get(self, key: str) -> Optional[Any]:
+        pass
 
-    def test_default_environment_variables(self, mock_redis):
-        """Test CacheManager initialization with default environment variables"""
-        cache_manager = CacheManager()
-        
-        assert os.getenv("REDIS_HOST", "localhost") == "localhost"
-        assert int(os.getenv("REDIS_PORT", 6379)) == 6379
-        assert int(os.getenv("REDIS_DB", 0)) == 0
-        assert os.getenv("REDIS_PASSWORD", None) is None
+    @abstractmethod
+    def set(self, key: str, value: Any, ttl: int) -> bool:
+        pass
 
-    def test_custom_environment_variables(self, mock_redis):
-        """Test CacheManager initialization with custom environment variables"""
-        test_config = {
-            "REDIS_HOST": "custom.redis.host",
-            "REDIS_PORT": "6380",
-            "REDIS_DB": "1",
-            "REDIS_PASSWORD": "secret123"
-        }
-        
-        with patch.dict(os.environ, test_config):
-            cache_manager = CacheManager()
-            
-            assert os.getenv("REDIS_HOST") == "custom.redis.host"
-            assert int(os.getenv("REDIS_PORT")) == 6380
-            assert int(os.getenv("REDIS_DB")) == 1
-            assert os.getenv("REDIS_PASSWORD") == "secret123"
+    @abstractmethod
+    def delete(self, key: str) -> bool:
+        pass
 
-    def test_invalid_port_environment_variable(self, mock_redis):
-        """Test CacheManager initialization with invalid port"""
-        with patch.dict(os.environ, {"REDIS_PORT": "invalid"}):
-            with pytest.raises(ValueError):
-                CacheManager()
+class RedisCache(CacheBackend):
+    def __init__(self, config: Dict[str, Union[str, int]]):
+        try:
+            self.client = redis.Redis(
+                host=config.get('host', 'localhost'),
+                port=int(config.get('port', 6379)),
+                db=int(config.get('db', 0)),
+                password=config.get('password'),
+                decode_responses=True,
+                socket_timeout=5,
+                retry_on_timeout=True
+            )
+            self.client.ping()  # Test connection
+        except (redis.ConnectionError, ValueError) as e:
+            logger.error(f"Redis connection failed: {str(e)}")
+            raise
 
-    def test_redis_connection_error(self):
-        """Test Redis connection error handling"""
-        with patch('redis.Redis') as mock:
-            mock.side_effect = redis.ConnectionError("Connection refused")
-            with pytest.raises(redis.ConnectionError) as exc_info:
-                CacheManager()
-            assert "Connection refused" in str(exc_info.value)
+    def get(self, key: str) -> Optional[Any]:
+        try:
+            return self.client.get(key)
+        except redis.RedisError as e:
+            logger.error(f"Redis get error: {str(e)}")
+            return None
 
-    @pytest.mark.parametrize("env_vars,expected", [
-        (
-            {"REDIS_HOST": "test1.redis.host", "REDIS_PORT": "6379"},
-            {"host": "test1.redis.host", "port": 6379}
-        ),
-        (
-            {"REDIS_HOST": "test2.redis.host", "REDIS_PORT": "6380", "REDIS_PASSWORD": "pwd123"},
-            {"host": "test2.redis.host", "port": 6380, "password": "pwd123"}
-        ),
-    ])
-    def test_multiple_configurations(self, mock_redis, env_vars, expected):
-        """Test multiple Redis configurations"""
-        with patch.dict(os.environ, env_vars):
-            CacheManager()
-            
-            for key, value in expected.items():
-                assert os.getenv(f"REDIS_{key.upper()}", str(value)) == str(value)
+    def set(self, key: str, value: Any, ttl: int) -> bool:
+        try:
+            return bool(self.client.setex(key, ttl, value))
+        except redis.RedisError as e:
+            logger.error(f"Redis set error: {str(e)}")
+            return False
 
-    @pytest.mark.integration
-    def test_real_redis_connection(self):
-        """Integration test with real Redis connection"""
-        # Skip if not in integration test environment
-        pytest.skip_if(
-            not os.getenv("INTEGRATION_TESTS"), 
-            reason="Integration tests not enabled"
-        )
-        
-        cache_manager = CacheManager()
-        assert cache_manager.redis_client.ping()
+    def delete(self, key: str) -> bool:
+        try:
+            return bool(self.client.delete(key))
+        except redis.RedisError as e:
+            logger.error(f"Redis delete error: {str(e)}")
+            return False
 
-if __name__ == "__main__":
-    pytest.main(["-v"])
+class MemoryCache(CacheBackend):
+    def __init__(self):
+        self._cache: Dict[str, Tuple[float, Any]] = {}
+
+    def _cleanup(self):
+        now = time.time()
+        expired_keys = [k for k, v in self._cache.items() if v[0] < now]
+        for k in expired_keys:
+            del self._cache[k]
+
+    def get(self, key: str) -> Optional[Any]:
+        self._cleanup()
+        if key in self._cache:
+            expire_time, value = self._cache[key]
+            if time.time() < expire_time:
+                return value
+            del self._cache[key]
+        return None
+
+    def set(self, key: str, value: Any, ttl: int) -> bool:
+        self._cleanup()
+        self._cache[key] = (time.time() + ttl, value)
+        return True
+
+    def delete(self, key: str) -> bool:
+        return bool(self._cache.pop(key, None))
+
+class CacheManager:
+    def __init__(self, backend: str = 'redis'):
+        self.backend = self._create_backend(backend)
+
+    def _create_backend(self, backend_type: str) -> CacheBackend:
+        if backend_type == 'redis':
+            config = {
+                'host': os.getenv('REDIS_HOST', 'localhost'),
+                'port': os.getenv('REDIS_PORT', 6379),
+                'db': os.getenv('REDIS_DB', 0),
+                'password': os.getenv('REDIS_PASSWORD')
+            }
+            return RedisCache(config)
+        elif backend_type == 'memory':
+            return MemoryCache()
+        else:
+            raise ValueError(f"Unsupported cache backend: {backend_type}")
+
+    def cache_decorator(self, ttl: int = 60, prefix: str = ''):
+        def decorator(func: Callable):
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                cache_key = f"{prefix}:{func.__name__}:{hash(str(args) + str(kwargs))}"
+                
+                # Try to get from cache
+                cached_result = self.backend.get(cache_key)
+                if cached_result is not None:
+                    logger.debug(f"Cache hit for key: {cache_key}")
+                    return cached_result
+
+                # Execute function and cache result
+                result = func(*args, **kwargs)
+                self.backend.set(cache_key, result, ttl)
+                logger.debug(f"Cache miss for key: {cache_key}")
+                return result
+
+            return wrapper
+        return decorator
+
+# Exemplo de uso:
+# cache_manager = CacheManager(backend='redis')
+# 
+# @cache_manager.cache_decorator(ttl=300, prefix='my_app')
+# def expensive_operation(param1, param2):
+#     # ... código da operação ...
+#     return result

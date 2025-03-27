@@ -1,80 +1,121 @@
-# src/controllers/base_message_controller.py
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
-from typing import Optional, Protocol
+from fastapi import APIRouter, HTTPException, Request, Depends
+from pydantic import BaseModel, Field, validator
+from typing import Protocol, Dict, Any, Optional
 from abc import ABC, abstractmethod
 import logging
 from enum import Enum
+from functools import lru_cache
+from src.factories.bot_factory import bots
+from logging import setup_logging
 
-# Configuração de logging mais robusta
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-
-class MessageService(Protocol):
-    @classmethod
-    async def send_message(cls, recipient_id: str, message: str) -> dict:
-        ...
+# Configuração de logging centralizada
+logger = setup_logging()
 
 class MessagePlatform(str, Enum):
     INSTAGRAM = "instagram"
     FACEBOOK = "facebook"
 
-class BaseMessageRequest(BaseModel):
-    message: str = Field(..., min_length=1, max_length=2000)
+class MessageService(Protocol):
+    @classmethod
+    async def send_message(cls, recipient_id: str, message: str) -> dict:
+        ...
+    
+    @classmethod
+    async def comment_on_post(cls, post_id: str, message: str) -> dict:
+        ...
+
+class BaseRequest(BaseModel):
     class Config:
+        use_enum_values = True
         extra = "forbid"
+        validate_assignment = True
 
-class InstagramMessageRequest(BaseMessageRequest):
-    user_id: str = Field(..., description="Instagram user identifier")
-    platform: MessagePlatform = MessagePlatform.INSTAGRAM
+class MessageRequest(BaseRequest):
+    message: str = Field(..., min_length=1, max_length=2000)
+    platform: MessagePlatform
 
-class FacebookMessageRequest(BaseMessageRequest):
-    recipient_id: str = Field(..., description="Facebook recipient ID")
-    platform: MessagePlatform = MessagePlatform.FACEBOOK
+    @validator('message')
+    def validate_message(cls, v):
+        if not v.strip():
+            raise ValueError("Message cannot be empty or only whitespace")
+        return v.strip()
 
-class BaseMessageController:
-    def __init__(self, service: MessageService, platform_name: str):
-        self.service = service
-        self.router = APIRouter(prefix=f"/{platform_name}", tags=[platform_name.capitalize()])
-        self.logger = logging.getLogger(f"{platform_name}_controller")
+class CommentRequest(BaseRequest):
+    post_id: str = Field(..., description="Post identifier")
+    message: str = Field(..., min_length=1, max_length=2000)
+    platform: MessagePlatform
+
+class SocialMediaController:
+    def __init__(self):
+        self.router = APIRouter()
         self._setup_routes()
+        self.services: Dict[MessagePlatform, MessageService] = {
+            MessagePlatform.INSTAGRAM: bots["instagram"],
+            MessagePlatform.FACEBOOK: bots["facebook"]
+        }
 
     def _setup_routes(self):
-        @self.router.post("/send-message")
-        async def send_message(request: BaseMessageRequest):
+        @self.router.post("/{platform}/send-message")
+        async def send_message(
+            platform: MessagePlatform,
+            request: MessageRequest,
+            service: MessageService = Depends(self._get_service)
+        ):
             try:
-                recipient = getattr(request, 'user_id', None) or getattr(request, 'recipient_id', None)
-                self.logger.info(f"Sending {request.platform.value} message to {recipient}")
-                
-                result = await self.service.send_message(recipient, request.message)
-                
-                return {
-                    "status": "success",
-                    "platform": request.platform.value,
-                    "recipient": recipient,
-                    "result": result
-                }
-            except Exception as e:
-                self.logger.error(f"{request.platform.value} error: {str(e)}", exc_info=True)
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"{request.platform.value} message failed: {str(e)}"
+                logger.info(f"Sending message via {platform}")
+                result = await service.send_message(
+                    recipient_id=request.recipient_id,
+                    message=request.message
                 )
+                return self._create_response(platform, "message_sent", result)
+            except Exception as e:
+                logger.error(f"Error in {platform} message: {str(e)}", exc_info=True)
+                raise self._handle_error(e)
 
-# src/controllers/instagram_controller.py
-from services.instagram_service import InstagramService
+        @self.router.post("/{platform}/comment")
+        async def comment_on_post(
+            platform: MessagePlatform,
+            request: CommentRequest,
+            service: MessageService = Depends(self._get_service)
+        ):
+            try:
+                logger.info(f"Commenting on post via {platform}")
+                result = await service.comment_on_post(
+                    post_id=request.post_id,
+                    message=request.message
+                )
+                return self._create_response(platform, "comment_posted", result)
+            except Exception as e:
+                logger.error(f"Error in {platform} comment: {str(e)}", exc_info=True)
+                raise self._handle_error(e)
 
-instagram_controller = BaseMessageController(
-    service=InstagramService,
-    platform_name="instagram"
-).router
+    def _get_service(self, platform: MessagePlatform) -> MessageService:
+        service = self.services.get(platform)
+        if not service:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Service not found for platform: {platform}"
+            )
+        return service
 
-# src/controllers/facebook_controller.py
-from services.facebook_service import FacebookService
+    @staticmethod
+    def _create_response(platform: MessagePlatform, action: str, result: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "status": "success",
+            "platform": platform,
+            "action": action,
+            "result": result
+        }
 
-facebook_controller = BaseMessageController(
-    service=FacebookService,
-    platform_name="facebook"
-).router
+    @staticmethod
+    def _handle_error(error: Exception) -> HTTPException:
+        if isinstance(error, HTTPException):
+            return error
+        return HTTPException(
+            status_code=500,
+            detail=str(error)
+        )
+
+# Instância única do controlador
+social_media_controller = SocialMediaController()
+router = social_media_controller.router

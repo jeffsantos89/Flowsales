@@ -18,7 +18,8 @@ from src.utils.cache import TTLCache
 from src.utils.metrics import MetricsCollector
 from src.security.ratelimiter import RateLimiter
 from src.config import Settings
-
+from src.clients.whatsapp_client import WhatsAppClient
+from src.ai.decorators.retry import retry
 # Configuração de logging estruturado
 logging.basicConfig(
     level=logging.INFO,

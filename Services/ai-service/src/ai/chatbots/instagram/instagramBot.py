@@ -18,6 +18,7 @@ from utils.logger import logger
 from ai.decorators.retry import retry
 from ai.decorators.background_task import background_task
 from .strategies.strategies import MessageProcessor
+from src.clients.instagram_client import InstagramClient
 
 class MessageIntent(Enum):
     PRODUCT_INFO = "product_info"
