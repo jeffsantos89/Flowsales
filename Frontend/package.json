@@ -11,12 +11,16 @@
     "prepare": "husky install"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.70.0",
+    "@types/react-toastify": "^4.0.2",
     "axios": "^1.3.5",
     "jwt-decode": "^4.0.0",
+    "next": "^15.2.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-error-boundary": "^5.0.0",
-    "react-router-dom": "^6.14.2"
+    "react-router-dom": "^6.14.2",
+    "react-toastify": "^11.0.5"
   },
   "devDependencies": {
     "eslint": "^8.31.0",

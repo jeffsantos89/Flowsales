@@ -1,0 +1,7 @@
+
+apiVersion: v2
+name: page-builder-service
+description: Helm chart for Flowsales Page Builder Service
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

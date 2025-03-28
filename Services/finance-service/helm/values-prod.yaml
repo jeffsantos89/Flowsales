@@ -1,0 +1,24 @@
+
+replicaCount: 3
+
+image:
+  repository: flowsales/finance-service
+  tag: latest
+  pullPolicy: Always
+
+env:
+  ENVIRONMENT: production
+  JWT_SECRET: prod-secret
+  DB_HOST: finance-service-db
+  DB_PORT: 5432
+  DB_NAME: finance_service_prod
+  DB_USER: prod_user
+  DB_PASSWORD: prod_pass
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1024Mi
+  requests:
+    cpu: 500m
+    memory: 512Mi

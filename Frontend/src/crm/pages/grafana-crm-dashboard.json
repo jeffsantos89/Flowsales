@@ -1,0 +1,110 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "crm-observability",
+    "title": "CRM Service Observability",
+    "tags": [
+      "crm",
+      "flowsales"
+    ],
+    "timezone": "browser",
+    "schemaVersion": 30,
+    "version": 1,
+    "panels": [
+      {
+        "type": "stat",
+        "title": "Leads Criados (\u00daltimas 24h)",
+        "id": 1,
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "sum(increase(crm_leads_created_total[24h]))",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 6,
+          "h": 3
+        }
+      },
+      {
+        "type": "graph",
+        "title": "Leads por Hora",
+        "id": 2,
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "increase(crm_leads_created_total[1h])",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "x": 6,
+          "y": 0,
+          "w": 18,
+          "h": 6
+        }
+      },
+      {
+        "type": "table",
+        "title": "Top Usu\u00e1rios Criadores de Leads",
+        "id": 3,
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "topk(5, sum by (user) (increase(crm_leads_created_by_user[6h])))",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "x": 0,
+          "y": 6,
+          "w": 12,
+          "h": 6
+        }
+      },
+      {
+        "type": "stat",
+        "title": "Score M\u00e9dio dos Leads (IA)",
+        "id": 4,
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "avg(crm_lead_score)",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "x": 12,
+          "y": 6,
+          "w": 12,
+          "h": 3
+        }
+      },
+      {
+        "type": "table",
+        "title": "Auditoria de A\u00e7\u00f5es Recentes",
+        "id": 5,
+        "datasource": "Loki",
+        "targets": [
+          {
+            "expr": "{app=\"crm-service\", level=\"info\"} |= \"AUDIT\"",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "x": 0,
+          "y": 12,
+          "w": 24,
+          "h": 6
+        }
+      }
+    ],
+    "templating": {
+      "list": []
+    }
+  },
+  "overwrite": true
+}

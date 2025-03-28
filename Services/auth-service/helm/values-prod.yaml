@@ -1,0 +1,15 @@
+replicaCount: 3
+image:
+  repository: flowsales/auth-service
+  tag: latest
+  pullPolicy: Always
+env:
+  JWT_SECRET: prod-secret
+  DB_URL: postgresql://user:pass@auth-db:5432/prod_auth
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1024Mi
+  requests:
+    cpu: 500m
+    memory: 512Mi

@@ -1,0 +1,15 @@
+replicaCount: 1
+image:
+  repository: flowsales/auth-service
+  tag: dev
+  pullPolicy: IfNotPresent
+env:
+  JWT_SECRET: dev-secret
+  DB_URL: postgresql://user:pass@auth-db:5432/dev_auth
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi

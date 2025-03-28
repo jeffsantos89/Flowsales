@@ -1,0 +1,6 @@
+apiVersion: v2
+name: affiliate-service
+description: Helm chart for Flowsales Affiliate Microservice
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

@@ -1,0 +1,79 @@
+# Authentication Service Configuration
+version: '1.0'
+
+# Vault Secrets Configuration
+secrets:
+  jwt:
+    secret: vault:auth/jwt
+    configuration:
+      expiresIn: vault:auth/jwt/expires
+      refreshToken: vault:auth/jwt/refresh
+      algorithm: ${JWT_ALGORITHM:HS256}
+      issuer: ${JWT_ISSUER:auth-service}
+  
+  database:
+    primary:
+      url: vault:auth/database/url
+      credentials:
+        username: vault:auth/database/username
+        password: vault:auth/database/password
+      pool:
+        min: vault:auth/database/pool/min
+        max: vault:auth/database/pool/max
+        idle: ${DB_IDLE_TIMEOUT:10000}
+        acquire: ${DB_ACQUIRE_TIMEOUT:60000}
+
+# Environment Configuration
+environment:
+  type: ${ENV:production}
+  region: ${REGION:us-east-1}
+
+# Monitoring and Metrics
+monitoring:
+  enabled: true
+  endpoint: vault:auth/monitoring/endpoint
+  metrics:
+    enabled: true
+    interval: ${METRICS_INTERVAL:15s}
+  health:
+    enabled: true
+    path: /health
+
+# Security Configuration
+security:
+  rateLimit:
+    enabled: true
+    maxRequests: vault:auth/security/ratelimit/max
+    windowMs: vault:auth/security/ratelimit/window
+    skipList: ["health", "metrics"]
+  cors:
+    enabled: ${CORS_ENABLED:true}
+    origins: ${CORS_ORIGINS:*}
+  ssl:
+    enabled: ${SSL_ENABLED:true}
+    redirect: true
+
+# Logging Configuration
+logging:
+  level: ${LOG_LEVEL:info}
+  format: json
+  options:
+    timestamp: true
+    correlationId: true
+    service: auth-service
+  outputs:
+    - console
+    - ${LOG_FILE:/var/log/auth-service.log}
+
+# Circuit Breaker Configuration
+resilience:
+  circuitBreaker:
+    enabled: true
+    failureRateThreshold: ${CB_FAILURE_RATE:50}
+    waitDurationInOpenState: ${CB_WAIT_DURATION:60000}
+
+# Cache Configuration
+cache:
+  enabled: true
+  type: ${CACHE_TYPE:redis}
+  ttl: ${CACHE_TTL:3600}

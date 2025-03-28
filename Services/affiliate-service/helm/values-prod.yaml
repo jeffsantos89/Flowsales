@@ -1,0 +1,23 @@
+replicaCount: 3
+
+image:
+  repository: flowsales/affiliate-service
+  tag: latest
+  pullPolicy: Always
+
+env:
+  ENVIRONMENT: production
+  JWT_SECRET: prod-secret
+  DB_HOST: affiliate-db
+  DB_PORT: 5432
+  DB_NAME: affiliate_prod
+  DB_USER: prod_user
+  DB_PASSWORD: prod_pass
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1024Mi
+  requests:
+    cpu: 500m
+    memory: 512Mi

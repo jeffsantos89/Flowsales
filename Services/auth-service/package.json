@@ -6,13 +6,31 @@
     "migrate": "knex migrate:latest"
   },
   "dependencies": {
+    "@types/compression": "^1.7.5",
+    "@types/config": "^3.3.5",
+    "@types/helmet": "^0.0.48",
+    "@types/react-toastify": "^4.0.2",
+    "@types/uuid": "^10.0.0",
     "bcrypt": "^5.0.1",
+    "celebrate": "^15.0.3",
+    "compression": "^1.8.0",
+    "config": "^3.3.12",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
-    "express": "^4.18.2",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "express-validator": "^7.2.1",
+    "helmet": "^8.1.0",
+    "http-status-codes": "^2.3.0",
     "jsonwebtoken": "^9.0.0",
-    "pg": "^8.10.0",
     "knex": "^2.4.2",
+    "pg": "^8.10.0",
+    "react-toastify": "^11.0.5",
+    "uuid": "^11.1.0",
     "winston": "^3.9.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.1",
+    "@types/express-rate-limit": "^5.1.3"
   }
 }

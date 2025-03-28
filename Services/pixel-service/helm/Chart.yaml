@@ -1,0 +1,7 @@
+
+apiVersion: v2
+name: pixel-service
+description: Helm chart for Flowsales Pixel Service
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

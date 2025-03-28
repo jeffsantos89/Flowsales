@@ -1,0 +1,1 @@
+// Página finance placeholder
