@@ -1,0 +1,39 @@
+title = "Flowsale gitleaks config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "flowsale-weak-jwt"
+description = "JWT/auth secret com valor fraco hardcoded"
+regex = '''(?i)(jwt[_-]?secret|auth[_-]?secret|nextauth[_-]?secret|signing[_-]?key)\s*[:=]\s*["']?(supersecret|admin|test|changeme|dev|secret|password|mysecretkey|minha_chave_jwt|sua_chave_jwt|your_jwt_secret)["']?'''
+tags = ["secret", "weak", "jwt"]
+
+[[rules]]
+id = "flowsale-weak-password"
+description = "Senha fraca hardcoded"
+regex = '''(?i)(auth[_-]?pass|ari[_-]?pass|admin[_-]?pass|root[_-]?pass|db[_-]?pass(?:word)?)\s*[:=]\s*["']?(admin123|password123|123456|qwerty|admin|root|my_super_secret_password|admin123)["']?'''
+tags = ["secret", "weak", "password"]
+
+[[rules]]
+id = "flowsale-encryption-key"
+description = "Encryption key fraca ou hardcoded"
+regex = '''(?i)(encryption[_-]?key|master[_-]?key|aes[_-]?key)\s*[:=]\s*["']?[a-zA-Z0-9]{8,64}["']?'''
+tags = ["secret", "encryption"]
+
+[allowlist]
+description = "Caminhos que não contêm secrets reais"
+paths = [
+  '''\.env\.example$''',
+  '''\.env\..*\.example$''',
+  '''node_modules/''',
+  '''\.git/''',
+  '''docs/security/''',
+  '''docs/audit/''',
+  '''\.gitleaks\.toml$''',
+  '''INCIDENT-LOG''',
+  '''PROMPTS-EMERGENCY''',
+]
+
+[allowlist.commits]
+description = "Commits de reescrita de histórico (filter-repo)"

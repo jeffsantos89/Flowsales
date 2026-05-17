@@ -6,7 +6,7 @@ class TestCSRFProtection(unittest.TestCase):
 
     def setUp(self):
         self.app = Flask(__name__)
-        self.app.config['SECRET_KEY'] = 'supersecretkey'
+        self.app.config['SECRET_KEY'] = 'test-csrf-key-only-for-unit-tests'
         self.app.config['WTF_CSRF_ENABLED'] = True
         self.csrf = CSRFProtect(self.app)
 

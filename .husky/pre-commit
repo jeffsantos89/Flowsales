@@ -1,0 +1,60 @@
+#!/usr/bin/env sh
+
+# ============================================================
+# Flowsale pre-commit hook
+# Bloqueia .env e arquivos sensíveis antes de qualquer commit
+# ============================================================
+
+STAGED_FILES=$(git diff --cached --name-only)
+
+# 1. Bloquear arquivos .env (exceto .example)
+FORBIDDEN=$(echo "$STAGED_FILES" | grep -E '(^|/)\.env($|\.[^e]|\.e[^x]|\.ex[^a]|\.exa[^m]|\.exam[^p]|\.examp[^l]|\.exampl[^e])' || true)
+if [ -n "$FORBIDDEN" ]; then
+  echo "❌ ABORT: Tentando commitar arquivo sensível:"
+  echo "$FORBIDDEN"
+  echo ""
+  echo "Arquivos .env nunca devem ir para o git."
+  echo "Use .env.example com placeholders CHANGEME_* para documentar variáveis."
+  echo ""
+  echo "Se for falso positivo intencional: git commit --no-verify (use com consciência)"
+  exit 1
+fi
+
+# 2. Bloquear certificados e chaves privadas
+CERT_FILES=$(echo "$STAGED_FILES" | grep -E '\.(pem|key|p12|pfx|jks|crt|cer)$' || true)
+if [ -n "$CERT_FILES" ]; then
+  echo "❌ ABORT: Tentando commitar certificado/chave privada:"
+  echo "$CERT_FILES"
+  exit 1
+fi
+
+# 3. Bloquear tfvars com valores reais
+TFVARS=$(echo "$STAGED_FILES" | grep -E '\.tfvars$' | grep -v '\.example\.' || true)
+if [ -n "$TFVARS" ]; then
+  echo "❌ ABORT: Tentando commitar .tfvars (pode conter secrets de infra):"
+  echo "$TFVARS"
+  echo "Use .tfvars.example com placeholders."
+  exit 1
+fi
+
+# 4. Bloquear K8s secrets com valores reais (heurística: secret.yaml sem 'example' no nome)
+K8S_SECRETS=$(echo "$STAGED_FILES" | grep -iE '(kubernetes|k8s).*(secret|secrets).*\.ya?ml$' | grep -vi 'example' || true)
+if [ -n "$K8S_SECRETS" ]; then
+  echo "❌ ABORT: Tentando commitar K8s Secret YAML:"
+  echo "$K8S_SECRETS"
+  echo "Use External Secrets Operator ou passe valores via CI/CD secrets."
+  exit 1
+fi
+
+# 5. Gitleaks (se instalado)
+if command -v gitleaks >/dev/null 2>&1; then
+  if ! gitleaks protect --staged --verbose --redact -c .gitleaks.toml 2>/dev/null; then
+    echo "❌ ABORT: gitleaks detectou possíveis secrets nas mudanças staged"
+    exit 1
+  fi
+else
+  echo "⚠️  WARNING: gitleaks não instalado."
+  echo "   Instale: brew install gitleaks (Mac) ou https://github.com/gitleaks/gitleaks/releases"
+fi
+
+exit 0
