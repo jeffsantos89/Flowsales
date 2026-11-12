@@ -5,10 +5,10 @@ services:
     container_name: postgres-db
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${FLOWSALE_POSTGRES_PASSWORD:?Define_FLOWSALE_POSTGRES_PASSWORD}
       POSTGRES_DB: flowsale
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     networks:
@@ -23,11 +23,11 @@ services:
       PORT: 3001
       DB_HOST: postgres
       DB_USER: postgres
-      DB_PASS: postgres
+      DB_PASS: ${FLOWSALE_POSTGRES_PASSWORD:?Define_FLOWSALE_POSTGRES_PASSWORD}
       DB_NAME: flowsale
       NODE_ENV: development
     ports:
-      - "3001:3001"
+      - "127.0.0.1:3001:3001"
     networks:
       - backend
 
@@ -40,11 +40,11 @@ services:
       PORT: 3002
       DB_HOST: postgres
       DB_USER: postgres
-      DB_PASS: postgres
+      DB_PASS: ${FLOWSALE_POSTGRES_PASSWORD:?Define_FLOWSALE_POSTGRES_PASSWORD}
       DB_NAME: flowsale
       NODE_ENV: development
     ports:
-      - "3002:3002"
+      - "127.0.0.1:3002:3002"
     networks:
       - backend
 
@@ -57,11 +57,11 @@ services:
       PORT: 3003
       DB_HOST: postgres
       DB_USER: postgres
-      DB_PASS: postgres
+      DB_PASS: ${FLOWSALE_POSTGRES_PASSWORD:?Define_FLOWSALE_POSTGRES_PASSWORD}
       DB_NAME: flowsale
       NODE_ENV: development
     ports:
-      - "3003:3003"
+      - "127.0.0.1:3003:3003"
     networks:
       - backend
 
@@ -74,11 +74,11 @@ services:
       PORT: 3004
       DB_HOST: postgres
       DB_USER: postgres
-      DB_PASS: postgres
+      DB_PASS: ${FLOWSALE_POSTGRES_PASSWORD:?Define_FLOWSALE_POSTGRES_PASSWORD}
       DB_NAME: flowsale
       NODE_ENV: development
     ports:
-      - "3004:3004"
+      - "127.0.0.1:3004:3004"
     networks:
       - backend
 
@@ -91,11 +91,11 @@ services:
       PORT: 3005
       DB_HOST: postgres
       DB_USER: postgres
-      DB_PASS: postgres
+      DB_PASS: ${FLOWSALE_POSTGRES_PASSWORD:?Define_FLOWSALE_POSTGRES_PASSWORD}
       DB_NAME: flowsale
       NODE_ENV: development
     ports:
-      - "3005:3005"
+      - "127.0.0.1:3005:3005"
     networks:
       - backend
 
@@ -108,11 +108,11 @@ services:
       PORT: 3006
       DB_HOST: postgres
       DB_USER: postgres
-      DB_PASS: postgres
+      DB_PASS: ${FLOWSALE_POSTGRES_PASSWORD:?Define_FLOWSALE_POSTGRES_PASSWORD}
       DB_NAME: flowsale
       NODE_ENV: development
     ports:
-      - "3006:3006"
+      - "127.0.0.1:3006:3006"
     networks:
       - backend
 
@@ -125,11 +125,11 @@ services:
       PORT: 3007
       DB_HOST: postgres
       DB_USER: postgres
-      DB_PASS: postgres
+      DB_PASS: ${FLOWSALE_POSTGRES_PASSWORD:?Define_FLOWSALE_POSTGRES_PASSWORD}
       DB_NAME: flowsale
       NODE_ENV: development
     ports:
-      - "3007:3007"
+      - "127.0.0.1:3007:3007"
     networks:
       - backend
 
@@ -142,11 +142,11 @@ services:
       PORT: 3008
       DB_HOST: postgres
       DB_USER: postgres
-      DB_PASS: postgres
+      DB_PASS: ${FLOWSALE_POSTGRES_PASSWORD:?Define_FLOWSALE_POSTGRES_PASSWORD}
       DB_NAME: flowsale
       NODE_ENV: development
     ports:
-      - "3008:3008"
+      - "127.0.0.1:3008:3008"
     networks:
       - backend
 
@@ -159,11 +159,11 @@ services:
       PORT: 3009
       DB_HOST: postgres
       DB_USER: postgres
-      DB_PASS: postgres
+      DB_PASS: ${FLOWSALE_POSTGRES_PASSWORD:?Define_FLOWSALE_POSTGRES_PASSWORD}
       DB_NAME: flowsale
       NODE_ENV: development
     ports:
-      - "3009:3009"
+      - "127.0.0.1:3009:3009"
     networks:
       - backend
 
